@@ -4,12 +4,24 @@
 \alias{estat_meta_info}
 \title{Retrieve classification metadata for an e-Stat table}
 \usage{
-estat_meta_info(statsDataId, key = get_estat_key())
+estat_meta_info(
+  statsDataId,
+  key = get_estat_key(),
+  cache = TRUE,
+  cache_ttl = getOption("estatr.cache_ttl", 30 * 24 * 3600)
+)
 }
 \arguments{
 \item{statsDataId}{The table id whose metadata to fetch.}
 
 \item{key}{e-Stat appId. Defaults to the stored key.}
+
+\item{cache}{If \code{TRUE} (default), read/write the parsed metadata from the
+on-disk cache (see \code{\link[=estat_cache_dir]{estat_cache_dir()}}); metadata rarely changes, so this
+avoids a network round-trip on repeat calls. Set \code{FALSE} to force a fetch.}
+
+\item{cache_ttl}{Maximum age, in seconds, of a cached entry before it is
+refetched. Defaults to \code{options(estatr.cache_ttl)} or 30 days.}
 }
 \value{
 A named list of \link[tibble:tibble]{tibbles}, one per classification

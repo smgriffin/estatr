@@ -1,14 +1,3 @@
-meta_json <- function(status = 0L) {
-  sprintf('{"GET_META_INFO":{"RESULT":{"STATUS":%d,"ERROR_MSG":""},"METADATA_INF":{
-    "TABLE_INF":{"@id":"0003217721","STATISTICS_NAME":"労働力調査"},
-    "CLASS_INF":{"CLASS_OBJ":[
-      {"@id":"cat01","@name":"就業状態","CLASS":[
-        {"@code":"00","@name":"15歳以上人口","@level":"1","@unit":"万人"},
-        {"@code":"12","@name":"労働力人口","@level":"2","@parentCode":"00"}]},
-      {"@id":"area","@name":"地域","CLASS":{"@code":"00000","@name":"全国","@level":"1"}}
-    ]}}}}', status)
-}
-
 test_that("estat_meta_info returns one tibble per axis with stable columns", {
   httr2::local_mocked_responses(function(req) fake_json_response(meta_json()))
   m <- estat_meta_info("0003217721")

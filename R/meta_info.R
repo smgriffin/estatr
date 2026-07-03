@@ -12,6 +12,11 @@
 #'
 #' @param statsDataId The table id whose metadata to fetch.
 #' @param key e-Stat appId. Defaults to the stored key.
+#' @param cache If `TRUE` (default), read/write the parsed metadata from the
+#'   on-disk cache (see [estat_cache_dir()]); metadata rarely changes, so this
+#'   avoids a network round-trip on repeat calls. Set `FALSE` to force a fetch.
+#' @param cache_ttl Maximum age, in seconds, of a cached entry before it is
+#'   refetched. Defaults to `options(estatr.cache_ttl)` or 30 days.
 #' @return A named list of [tibbles][tibble::tibble], one per classification
 #'   axis, plus a `table_info` attribute with the table's overall description.
 #' @export
@@ -20,7 +25,8 @@
 #' meta <- estat_meta_info("0003217721")
 #' meta$cat01 # labels for the first category axis
 #' }
-estat_meta_info <- function(statsDataId, key = get_estat_key()) {
+estat_meta_info <- function(statsDataId, key = get_estat_key(), cache = TRUE,
+                            cache_ttl = getOption("estatr.cache_ttl", 30 * 24 * 3600)) {
   if (!rlang::is_string(statsDataId) || !nzchar(statsDataId)) {
     cli::cli_abort(
       "{.arg statsDataId} must be a single non-empty string.",
@@ -28,6 +34,20 @@ estat_meta_info <- function(statsDataId, key = get_estat_key()) {
     )
   }
 
+  if (isTRUE(cache)) {
+    hit <- cache_get(meta_cache_key(statsDataId), sub = "meta", ttl = cache_ttl)
+    if (!is.null(hit)) return(hit)
+  }
+
+  tables <- memo_fetch_meta_tables(statsDataId, key)
+
+  if (isTRUE(cache)) cache_set(meta_cache_key(statsDataId), tables, sub = "meta")
+  tables
+}
+
+# The actual getMetaInfo fetch + parse. Memoised in-session in .onLoad so
+# repeated ids within one session skip even the disk read.
+fetch_meta_tables <- function(statsDataId, key = get_estat_key()) {
   req <- estat_request("getMetaInfo", params = list(statsDataId = statsDataId), key = key)
   body <- estat_perform(req, "GET_META_INFO")
 

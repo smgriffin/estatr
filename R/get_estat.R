@@ -27,6 +27,8 @@
 #'   even the boundary conversion. Defaults to `FALSE`.
 #' @param limit Maximum number of rows to return. `NULL` (default) returns all
 #'   matching rows.
+#' @param checkpoint Optional path to a checkpoint file for resumable pulls (see
+#'   [estat_stats_data()]).
 #' @param key e-Stat appId. Defaults to the stored key.
 #' @return A tidy [tibble][tibble::tibble] (or `data.table` if `as_data_table`),
 #'   with a `notes` attribute holding the table's annotation legend.
@@ -38,21 +40,22 @@
 #' get_estat("0003217721", cdCat03 = "1", limit = 500)
 #' }
 get_estat <- function(statsDataId, ..., decode_labels = TRUE,
-                      as_data_table = FALSE, limit = NULL, key = get_estat_key()) {
+                      as_data_table = FALSE, limit = NULL,
+                      checkpoint = NULL, key = get_estat_key()) {
   validate_stats_data_args(statsDataId, limit, 1L)
 
   params <- c(list(statsDataId = statsDataId), list(...))
-  bodies <- estat_stats_data_bodies(params, key = key, pull_limit = limit)
+  res <- collect_stats_data(params, key = key, pull_limit = limit, checkpoint = checkpoint)
 
-  dt <- values_from_bodies(bodies)
-  notes <- notes_from_body(bodies[[1]])
+  dt <- res$values
+  notes <- notes_from_body(res$meta_body)
 
   # Split value into a numeric column and an annotation flag, rather than
   # coercing suppressed/footnoted cells silently to NA.
   dt <- split_value_annotation(dt)
 
   if (isTRUE(decode_labels) && nrow(dt) > 0) {
-    class_inf <- dig(bodies[[1]], "GET_STATS_DATA", "STATISTICAL_DATA", "CLASS_INF")
+    class_inf <- dig(res$meta_body, "GET_STATS_DATA", "STATISTICAL_DATA", "CLASS_INF")
     tables <- class_inf_to_tables(class_inf)
     dt <- decode_axes(dt, tables)
   }

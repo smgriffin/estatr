@@ -9,6 +9,7 @@ estat_stats_data(
   ...,
   limit = NULL,
   start_position = 1L,
+  checkpoint = NULL,
   key = get_estat_key()
 )
 }
@@ -23,6 +24,10 @@ e-Stat's expected code-list form.}
 matching rows, paginating as needed.}
 
 \item{start_position}{1-based absolute row offset to start from.}
+
+\item{checkpoint}{Optional path to a checkpoint file for resumable pulls. When
+set, each page's rows are persisted keyed by absolute offset, so an
+interrupted large pull resumes by re-requesting only the missing pages.}
 
 \item{key}{e-Stat appId. Defaults to the stored key.}
 }

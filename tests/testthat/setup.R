@@ -2,6 +2,12 @@
 # real appId. withr resets it after the test run.
 withr::local_envvar(ESTAT_API_KEY = "test-app-id", .local_envir = teardown_env())
 
+# Keep the whole test run out of the user's real cache directory.
+withr::local_options(
+  estatr.cache_dir = file.path(tempdir(), "estatr-cache-tests"),
+  .local_envir = teardown_env()
+)
+
 # When (later) recording real fixtures with httptest2, scrub the appId out of the
 # saved request URL/paths so a secret can never land in a committed fixture.
 if (requireNamespace("httptest2", quietly = TRUE)) {

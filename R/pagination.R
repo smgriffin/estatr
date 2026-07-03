@@ -1,64 +1,78 @@
-# Automatic pagination for getStatsData.
+# Automatic pagination for getStatsData, with optional resumable checkpointing.
 #
 # e-Stat caps a single response at 100,000 records and reports the full match
-# count (TOTAL_NUMBER) on page one. We use that to fetch page one sequentially,
-# then fan out the *remaining* pages by absolute offset concurrently (bounded by
-# max_active) — "parallel but polite". This is the key differentiator over
-# estatapi, which leaves pagination to the user.
+# count (TOTAL_NUMBER) on page one. We fetch page one sequentially, then fan out
+# the *remaining* pages by absolute offset concurrently (bounded by max_active)
+# -- "parallel but polite". This is the key differentiator over estatapi, which
+# leaves pagination to the user.
+#
+# When a checkpoint path is supplied, each page's rows are persisted keyed by
+# their absolute offset, so a multi-million-row pull that dies partway through
+# resumes by re-requesting only the missing offsets (a completed-offset manifest,
+# NOT a single "last NEXT_KEY", which only fits the sequential fallback).
 
-# Fetch all pages of a getStatsData query and return the list of response bodies
-# (bodies[[1]] is page one, which also carries CLASS_INF/NOTE metadata).
+# Fetch a getStatsData query and return list(values = <data.table of VALUE rows>,
+# meta_body = <page-1 body, carrying CLASS_INF / NOTE>).
 #
 # @param params Base query params (without limit/startPosition).
 # @param pull_limit Max total rows to return, or NULL for all matching rows.
 # @param start 1-based absolute offset of the first row to fetch.
-estat_stats_data_bodies <- function(params, key = get_estat_key(),
-                                    pull_limit = NULL, start = 1L,
-                                    max_active = getOption("estatr.max_active", estat_default_max_active)) {
-  # The hard API cap is 100,000/call; the option lets tests (and, rarely, users
-  # on a flaky connection) shrink pages to exercise or ease pagination.
+# @param checkpoint Optional file path for a resumable checkpoint store.
+collect_stats_data <- function(params, key = get_estat_key(),
+                               pull_limit = NULL, start = 1L,
+                               max_active = getOption("estatr.max_active", estat_default_max_active),
+                               checkpoint = NULL) {
   page_size <- getOption("estatr.page_size", estat_max_records_per_call)
   if (!is.null(pull_limit)) page_size <- min(pull_limit, page_size)
 
-  page1_req <- estat_request(
-    "getStatsData",
-    params = c(params, list(limit = page_size, startPosition = start)),
-    key = key
+  # Page one is always fetched: it carries TOTAL_NUMBER and the bundled metadata.
+  page1 <- estat_perform(
+    estat_request("getStatsData",
+      params = c(params, list(limit = page_size, startPosition = start)), key = key),
+    "GET_STATS_DATA"
   )
-  page1 <- estat_perform(page1_req, "GET_STATS_DATA")
-
   info <- dig(page1, "GET_STATS_DATA", "STATISTICAL_DATA", "RESULT_INF")
   total_matched <- as_count(dig(info, "TOTAL_NUMBER"))
   to <- as_count(dig(info, "TO_NUMBER"))
   next_key <- dig(info, "NEXT_KEY")
 
-  # How far do we actually need to read? The smaller of "all matching rows" and
-  # the caller's requested cap.
   target_last <- total_matched
   if (!is.null(pull_limit)) target_last <- min(target_last, start + pull_limit - 1L)
 
-  # Single page covers it.
-  if (is.null(next_key) || is.na(to) || to >= target_last) {
-    return(list(page1))
+  # The offset->rows manifest, seeded from any existing checkpoint plus page one.
+  store <- checkpoint_load(checkpoint)
+  store[[as.character(start)]] <- values_from_bodies(list(page1))
+  if (!is.null(checkpoint)) checkpoint_save(checkpoint, store)
+
+  if (!is.null(next_key) && !is.na(to) && to < target_last) {
+    offsets <- seq.int(to + 1L, target_last, by = page_size)
+    pending <- offsets[!(as.character(offsets) %in% names(store))]
+
+    # With a checkpoint, fetch in batches and persist after each, so a crash
+    # loses at most one batch. Without one, a single bounded-parallel sweep.
+    batches <- if (is.null(checkpoint)) list(pending) else split_batches(pending, max_active)
+    for (batch in batches) {
+      if (length(batch) == 0) next
+      reqs <- lapply(batch, function(off) {
+        this_size <- min(page_size, target_last - off + 1L)
+        estat_request("getStatsData",
+          params = c(params, list(limit = this_size, startPosition = off)), key = key)
+      })
+      bodies <- estat_fetch_bodies(reqs, envelope = "GET_STATS_DATA", max_active = max_active)
+      for (i in seq_along(batch)) {
+        store[[as.character(batch[i])]] <- values_from_bodies(list(bodies[[i]]))
+      }
+      if (!is.null(checkpoint)) checkpoint_save(checkpoint, store)
+    }
   }
 
-  # Fan out the remaining pages by absolute offset.
-  offsets <- seq.int(to + 1L, target_last, by = page_size)
-  reqs <- lapply(offsets, function(off) {
-    this_size <- min(page_size, target_last - off + 1L)
-    estat_request(
-      "getStatsData",
-      params = c(params, list(limit = this_size, startPosition = off)),
-      key = key
-    )
-  })
-
-  rest <- estat_fetch_bodies(reqs, envelope = "GET_STATS_DATA", max_active = max_active)
-  c(list(page1), rest)
+  # Assemble every page in ascending offset order, one bulk rbindlist.
+  ordered <- as.character(sort(as.integer(names(store))))
+  values <- data.table::rbindlist(store[ordered], fill = TRUE, use.names = TRUE)
+  list(values = values, meta_body = page1)
 }
 
-# Pull the VALUE rows out of every page body and assemble them into one
-# data.table in a single bulk rbindlist (never a row-wise loop).
+# Pull the VALUE rows out of a set of page bodies into one data.table.
 values_from_bodies <- function(bodies) {
   records <- unlist(
     lapply(bodies, function(b) {
@@ -67,6 +81,29 @@ values_from_bodies <- function(bodies) {
     recursive = FALSE
   )
   records_to_dt(records)
+}
+
+# Split a vector of offsets into batches of at most `size`.
+split_batches <- function(x, size) {
+  if (length(x) == 0) return(list())
+  unname(split(x, ceiling(seq_along(x) / size)))
+}
+
+# Load a checkpoint store (named list: offset -> data.table). Empty list if the
+# path is NULL or the file does not exist.
+checkpoint_load <- function(checkpoint) {
+  if (is.null(checkpoint) || !file.exists(checkpoint)) return(list())
+  tryCatch(readRDS(checkpoint), error = function(e) list())
+}
+
+# Persist a checkpoint store atomically (temp file + rename).
+checkpoint_save <- function(checkpoint, store) {
+  dir <- dirname(checkpoint)
+  if (!dir.exists(dir)) dir.create(dir, recursive = TRUE, showWarnings = FALSE)
+  tmp <- paste0(checkpoint, ".tmp-", Sys.getpid())
+  saveRDS(store, tmp)
+  file.rename(tmp, checkpoint)
+  invisible(checkpoint)
 }
 
 as_count <- function(x) suppressWarnings(as.integer(x))

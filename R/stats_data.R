@@ -20,6 +20,9 @@
 #' @param limit Maximum number of rows to return. `NULL` (default) returns all
 #'   matching rows, paginating as needed.
 #' @param start_position 1-based absolute row offset to start from.
+#' @param checkpoint Optional path to a checkpoint file for resumable pulls. When
+#'   set, each page's rows are persisted keyed by absolute offset, so an
+#'   interrupted large pull resumes by re-requesting only the missing pages.
 #' @param key e-Stat appId. Defaults to the stored key.
 #' @return A [tibble][tibble::tibble] of coded data values.
 #' @export
@@ -29,18 +32,19 @@
 #' estat_stats_data("0003217721", cdCat03 = "1", limit = 100)
 #' }
 estat_stats_data <- function(statsDataId, ..., limit = NULL,
-                             start_position = 1L, key = get_estat_key()) {
+                             start_position = 1L, checkpoint = NULL,
+                             key = get_estat_key()) {
   validate_stats_data_args(statsDataId, limit, start_position)
 
   params <- c(list(statsDataId = statsDataId), list(...))
-  bodies <- estat_stats_data_bodies(
+  res <- collect_stats_data(
     params,
     key = key,
     pull_limit = limit,
-    start = as.integer(start_position)
+    start = as.integer(start_position),
+    checkpoint = checkpoint
   )
-  dt <- values_from_bodies(bodies)
-  tibble::as_tibble(dt)
+  tibble::as_tibble(res$values)
 }
 
 validate_stats_data_args <- function(statsDataId, limit, start_position) {

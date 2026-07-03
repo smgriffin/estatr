@@ -18,6 +18,8 @@ instead of converting to a tibble, for bulk-analysis users who don't want
 even the boundary conversion. Defaults to \code{FALSE}.}
     \item{\code{limit}}{Maximum number of rows to return. \code{NULL} (default) returns all
 matching rows.}
+    \item{\code{checkpoint}}{Optional path to a checkpoint file for resumable pulls (see
+\code{\link[=estat_stats_data]{estat_stats_data()}}).}
     \item{\code{key}}{e-Stat appId. Defaults to the stored key.}
   }}
 }

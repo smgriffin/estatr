@@ -23,6 +23,8 @@ Imports:
     httr2,
     jsonlite,
     lifecycle,
+    memoise,
+    rappdirs,
     rlang,
     tibble
 Suggests:

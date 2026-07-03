@@ -29,5 +29,18 @@ sd_json <- function(values, total, to, next_key = NULL, status = 0L, notes = TRU
   )
 }
 
+# A getMetaInfo response body (as JSON) with two axes, one multi-CLASS and one
+# single-CLASS, including Japanese labels.
+meta_json <- function(status = 0L) {
+  sprintf('{"GET_META_INFO":{"RESULT":{"STATUS":%d,"ERROR_MSG":""},"METADATA_INF":{
+    "TABLE_INF":{"@id":"0003217721","STATISTICS_NAME":"労働力調査"},
+    "CLASS_INF":{"CLASS_OBJ":[
+      {"@id":"cat01","@name":"就業状態","CLASS":[
+        {"@code":"00","@name":"15歳以上人口","@level":"1","@unit":"万人"},
+        {"@code":"12","@name":"労働力人口","@level":"2","@parentCode":"00"}]},
+      {"@id":"area","@name":"地域","CLASS":{"@code":"00000","@name":"全国","@level":"1"}}
+    ]}}}}', status)
+}
+
 # Parse a JSON string into the list body shape estat_fetch_bodies would return.
 parse_body <- function(json) jsonlite::fromJSON(json, simplifyVector = FALSE)

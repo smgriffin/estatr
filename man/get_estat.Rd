@@ -10,6 +10,7 @@ get_estat(
   decode_labels = TRUE,
   as_data_table = FALSE,
   limit = NULL,
+  checkpoint = NULL,
   key = get_estat_key()
 )
 }
@@ -30,6 +31,9 @@ even the boundary conversion. Defaults to \code{FALSE}.}
 
 \item{limit}{Maximum number of rows to return. \code{NULL} (default) returns all
 matching rows.}
+
+\item{checkpoint}{Optional path to a checkpoint file for resumable pulls (see
+\code{\link[=estat_stats_data]{estat_stats_data()}}).}
 
 \item{key}{e-Stat appId. Defaults to the stored key.}
 }

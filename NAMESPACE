@@ -2,6 +2,8 @@
 
 export(estat_api_key)
 export(estat_api_key_exists)
+export(estat_cache_clear)
+export(estat_cache_dir)
 export(estat_curated_tables)
 export(estat_data_catalog)
 export(estat_meta_info)
