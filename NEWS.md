@@ -1,7 +1,53 @@
 # estatr 0.0.0.9000
 
-* First development release, establishing the HTTP/auth foundation (roadmap milestones M0–M1).
-* `estat_api_key()` and `estat_api_key_exists()` manage your e-Stat `appId`, modelled on `tidycensus::census_api_key()`. The key lives in an environment variable and is never stored in package state or printed.
-* Internal `httr2`-based request layer: JSON endpoints by default, UTF-8 query encoding for Japanese search terms, gzip, transient-only retry, and client-side throttling.
-* Central response handler treats e-Stat's `RESULT.STATUS` (not just HTTP status) as the source of truth, maps error codes to classed conditions (`estat_error_invalid_param`, `estat_error_no_data`, and so on), and scrubs the `appId` from every surfaced message, URL, and fixture.
-* `estat_stats_list()` wraps `getStatsList`, returning a tibble with e-Stat's nested code/label objects flattened via `data.table`.
+First development release: a tidy, tidycensus-style interface to the Japanese
+e-Stat API, covering roadmap milestones M0–M6.
+
+## High-level data access
+
+* `get_estat()`: the main entry point. Fetches data and its classification
+  metadata in a single call, decodes every numeric code to a label via
+  `data.table` binary joins, and returns a tidy tibble with paired label/code
+  columns (e.g. `area` + `area_code`, `time` + `time_code`), `unit`, a numeric
+  `value`, and an `annotation` column that preserves non-numeric markers
+  (suppressed cells, footnotes) instead of coercing them silently to `NA`. The
+  table's annotation legend is attached as a `notes` attribute. Fast paths:
+  `decode_labels = FALSE` and `as_data_table = TRUE`.
+* `pivot_estat_wide()`: reshape tidy output to wide form (`data.table::dcast`).
+
+## Discovery
+
+* `search_estat()`: friendly catalog search with stable snake_case columns.
+* Curated shortcuts — `estat_curated_tables()`, `get_estat_curated()`,
+  `get_labour_force_survey()`, `get_family_income_survey()` — so common tables
+  need no `statsDataId` lookup.
+* `prefectures`: bundled reference data (47 prefectures, JIS + e-Stat area codes,
+  English/Japanese names).
+
+## Low-level endpoint wrappers
+
+* `estat_stats_list()` (getStatsList), `estat_meta_info()` (getMetaInfo),
+  `estat_stats_data()` (getStatsData), `estat_data_catalog()` (getDataCatalog).
+* `estat_stats_data()` paginates automatically, fetching pages beyond the
+  100,000-record cap concurrently by absolute offset ("parallel but polite",
+  bounded and throttled) rather than leaving pagination to the user.
+
+## Infrastructure
+
+* `estat_api_key()` / `estat_api_key_exists()`: key management via environment
+  variable and optional `.Renviron`; the key is never stored in package state or
+  printed, and is redacted from every error message, URL, and fixture.
+* Robust HTTP layer: JSON endpoints by default, UTF-8 query encoding, gzip,
+  transient-only retry, and client-side throttling. e-Stat's `RESULT.STATUS` is
+  treated as the source of truth, with errors mapped to classed conditions
+  (`estat_error_invalid_param`, `estat_error_no_data`, ...).
+* Caching: on-disk metadata cache with TTL (`estat_cache_dir()`,
+  `estat_cache_clear()`) layered over in-session memoisation.
+* Resumable pulls: pass `checkpoint =` to `get_estat()` / `estat_stats_data()`
+  to persist completed page offsets, so an interrupted large pull resumes by
+  re-requesting only the missing pages.
+
+## Not yet included
+
+* Geometry / mapping support (`geometry = TRUE`-style choropleths) is deferred to
+  a future release.

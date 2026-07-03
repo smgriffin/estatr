@@ -1,0 +1,45 @@
+url: https://github.com/seangriffin/estatr
+
+template:
+  bootstrap: 5
+
+reference:
+- title: Get data
+  desc: High-level, analysis-ready access with decoded labels.
+  contents:
+  - get_estat
+  - pivot_estat_wide
+- title: Discovery
+  desc: Find the table you need.
+  contents:
+  - search_estat
+  - estat_curated_tables
+  - get_estat_curated
+  - get_labour_force_survey
+  - get_family_income_survey
+- title: Low-level endpoint wrappers
+  desc: Thin wrappers over the e-Stat API endpoints, for power users.
+  contents:
+  - estat_stats_list
+  - estat_meta_info
+  - estat_stats_data
+  - estat_data_catalog
+- title: Authentication
+  contents:
+  - estat_api_key
+  - estat_api_key_exists
+- title: Caching
+  contents:
+  - estat_cache_dir
+  - estat_cache_clear
+- title: Reference data
+  contents:
+  - prefectures
+
+articles:
+- title: Articles
+  navbar: ~
+  contents:
+  - finding-tables
+  - time-series
+  - data-model

@@ -18,9 +18,10 @@ e-Stat's numeric codes into human-readable labels; and returns tibbles that pipe
 straight into the tidyverse. Internally it uses `data.table` for speed on large
 tables, converting to a plain tibble only at the return boundary.
 
-> **Status:** early development. The HTTP/auth layer and low-level
-> `estat_stats_list()` are in place (roadmap M0–M1). Higher-level tidy wrappers
-> (`get_estat()`, `search_estat()`) are still to come.
+> **Status:** development version, feature-complete for a first release. Search,
+> metadata, data retrieval with automatic parallel pagination, label decoding,
+> caching, and resumable pulls are all in place. Geometry/mapping support is
+> deferred to a future release.
 
 ## Installation
 
@@ -48,9 +49,24 @@ sessions. The key is a secret: never commit it or paste it into issues.
 ``` r
 library(estatr)
 
-# Search the catalog for tables mentioning a keyword
-tables <- estat_stats_list(searchWord = "労働力調査")
+# 1. Find a table
+tables <- search_estat("労働力調査") # Labour Force Survey
+
+# 2. Get tidy, labelled data in one call (data + metadata, decoded)
+d <- get_estat("0003217721", limit = 500)
+#> # A tibble: 500 × 9
+#>   area  area_code time            time_code  cat01        cat01_code unit  value annotation
+#>   <chr> <chr>     <chr>           <chr>      <chr>        <chr>      <chr> <dbl> <chr>
+#> 1 全国  00000     2018年1～3月期  2018000103 15歳以上人口 00         万人  11077 NA
+#> …
+
+# 3. Or skip the id lookup with a curated shortcut
+lfs <- get_labour_force_survey(limit = 500)
 ```
+
+`get_estat()` returns one row per observation with paired label/code columns,
+a numeric `value`, and an `annotation` column preserving suppressed/footnoted
+markers. See `vignette("estatr")` to get started.
 
 ## Data source and credit
 

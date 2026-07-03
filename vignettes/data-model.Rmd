@@ -1,0 +1,89 @@
+---
+title: "Understanding e-Stat's data model"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Understanding e-Stat's data model}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
+library(estatr)
+```
+
+e-Stat trips up first-time users because a "table" is not a flat spreadsheet —
+it is a cube of coded values plus separate metadata that maps every code to a
+label. Understanding that split makes the whole API (and this package) click.
+
+## Tables, values, and classifications
+
+Each table (`statsDataId`) is a set of observations. Every observation is a
+single `value` tagged with a code on each of several **classification axes**:
+
+- `tab` — the tabulated item (what is being measured, e.g. "population").
+- `cat01`..`cat15` — category axes (sex, age band, employment status, ...).
+- `area` — geography (national, prefecture, municipality, or mesh).
+- `time` — the time period.
+
+The raw data carries only the *codes*. The **metadata** (`getMetaInfo`) maps each
+code to a human label. `estat_meta_info()` returns one tibble per axis:
+
+```{r}
+meta <- estat_meta_info("0003217721")
+names(meta)      # e.g. "tab" "cat01" "cat02" "cat03" "area" "time"
+meta$cat01       # code / name / level / parent / unit
+attr(meta, "axis_names") # the display name of each axis
+```
+
+## How `get_estat()` puts it together
+
+`get_estat()` hides this split. It fetches the data (which conveniently bundles
+its own metadata) and performs the code→label join for you, returning paired
+columns:
+
+```{r}
+d <- get_estat("0003217721", limit = 100)
+# For each axis X you get X (label) and X_code (the raw code)
+names(d)
+```
+
+Keep the codes when you need stable joins; keep the labels for reading. If you
+only want the codes (skipping the metadata join entirely), use the fast path:
+
+```{r}
+get_estat("0003217721", decode_labels = FALSE, limit = 100)
+```
+
+## Hierarchical codes
+
+Category and area codes are often hierarchical: a `level` column and a `parent`
+code let you walk from totals down to sub-categories. For example, an "all ages"
+row (`level` 1) may be the parent of individual age bands (`level` 2):
+
+```{r}
+meta$cat02[, c("code", "name", "level", "parent")]
+```
+
+## Pagination and scale
+
+A single table can be enormous (area-mesh data, long time series). e-Stat caps a
+response at 100,000 records; `estatr` pages through the rest automatically,
+fetching the remaining pages concurrently by absolute offset. For very large
+pulls, pass a `checkpoint` file so an interrupted download resumes where it left
+off:
+
+```{r}
+big <- get_estat("0003217721", checkpoint = "lfs.checkpoint.rds")
+```
+
+## Performance escape hatches
+
+Two arguments skip work you may not need:
+
+- `decode_labels = FALSE` — skip the metadata join, return raw codes.
+- `as_data_table = TRUE` — return the internal `data.table` instead of a tibble,
+  avoiding even the boundary conversion for bulk analysis.
+
+Metadata is cached on disk (see `estat_cache_dir()`), so repeated calls for the
+same table don't refetch it.
