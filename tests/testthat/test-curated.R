@@ -5,10 +5,15 @@ test_that("estat_curated_tables returns the curated lookup", {
   expect_true("labour_force_survey" %in% ct$key)
 })
 
-test_that("lookup_curated_id resolves known keys and rejects others", {
+test_that("lookup_curated_id resolves known keys and rejects unknown ones", {
   expect_equal(lookup_curated_id("labour_force_survey"), "0003005798")
+  expect_equal(lookup_curated_id("population_census"), "0003433219")
+  expect_equal(lookup_curated_id("economic_census"), "0004005652")
   expect_error(lookup_curated_id("does_not_exist"), class = "estat_error_unknown_curated")
-  expect_error(lookup_curated_id("population_census"), class = "estat_error_uncurated")
+})
+
+test_that("all curated entries now resolve to a statsDataId", {
+  expect_false(any(is.na(estat_curated_tables()$statsDataId)))
 })
 
 test_that("survey wrappers fetch through get_estat with the curated id", {

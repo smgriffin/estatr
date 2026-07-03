@@ -1,4 +1,4 @@
-url: https://github.com/seangriffin/estatr
+url: https://github.com/smgriffin/estatr
 
 template:
   bootstrap: 5
@@ -17,6 +17,8 @@ reference:
   - get_estat_curated
   - get_labour_force_survey
   - get_family_income_survey
+  - get_population_census
+  - get_economic_census
 - title: Low-level endpoint wrappers
   desc: Thin wrappers over the e-Stat API endpoints, for power users.
   contents:

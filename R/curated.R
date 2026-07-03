@@ -95,3 +95,37 @@ get_labour_force_survey <- function(...) {
 get_family_income_survey <- function(...) {
   get_estat_curated("family_income_survey", ...)
 }
+
+#' Get the Population Census (population by sex)
+#'
+#' Convenience wrapper for the 2020 Population Census table of population by sex
+#' at national, prefecture, and municipality level. Equivalent to
+#' `get_estat_curated("population_census", ...)`.
+#'
+#' @inheritDotParams get_estat -statsDataId
+#' @return The tidy tibble from [get_estat()].
+#' @export
+#' @examples
+#' \dontrun{
+#' get_population_census(cdArea = "13000") # Tokyo
+#' }
+get_population_census <- function(...) {
+  get_estat_curated("population_census", ...)
+}
+
+#' Get the Economic Census (establishments by industry)
+#'
+#' Convenience wrapper for the 2021 Economic Census (activity survey) table of
+#' establishment counts by industry. Equivalent to
+#' `get_estat_curated("economic_census", ...)`.
+#'
+#' @inheritDotParams get_estat -statsDataId
+#' @return The tidy tibble from [get_estat()].
+#' @export
+#' @examples
+#' \dontrun{
+#' get_economic_census(limit = 500)
+#' }
+get_economic_census <- function(...) {
+  get_estat_curated("economic_census", ...)
+}

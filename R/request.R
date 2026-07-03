@@ -93,5 +93,5 @@ estat_user_agent <- function() {
     as.character(utils::packageVersion("estatr")),
     error = function(e) "dev"
   )
-  paste0("estatr/", ver, " (https://github.com/seangriffin/estatr)")
+  paste0("estatr/", ver, " (https://github.com/smgriffin/estatr)")
 }

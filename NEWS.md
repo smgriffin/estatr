@@ -19,8 +19,9 @@ e-Stat API, covering roadmap milestones M0–M6.
 
 * `search_estat()`: friendly catalog search with stable snake_case columns.
 * Curated shortcuts — `estat_curated_tables()`, `get_estat_curated()`,
-  `get_labour_force_survey()`, `get_family_income_survey()` — so common tables
-  need no `statsDataId` lookup.
+  `get_labour_force_survey()`, `get_family_income_survey()`,
+  `get_population_census()`, `get_economic_census()` — so common tables need no
+  `statsDataId` lookup.
 * `prefectures`: bundled reference data (47 prefectures, JIS + e-Stat area codes,
   English/Japanese names).
 

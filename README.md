@@ -3,8 +3,8 @@
 # estatr
 
 <!-- badges: start -->
-[![R-CMD-check](https://github.com/seangriffin/estatr/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/seangriffin/estatr/actions/workflows/R-CMD-check.yaml)
-[![Codecov test coverage](https://codecov.io/gh/seangriffin/estatr/graph/badge.svg)](https://app.codecov.io/gh/seangriffin/estatr)
+[![R-CMD-check](https://github.com/smgriffin/estatr/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/smgriffin/estatr/actions/workflows/R-CMD-check.yaml)
+[![Codecov test coverage](https://codecov.io/gh/smgriffin/estatr/graph/badge.svg)](https://app.codecov.io/gh/smgriffin/estatr)
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 <!-- badges: end -->
 
@@ -27,7 +27,7 @@ tables, converting to a plain tibble only at the return boundary.
 
 ``` r
 # install.packages("pak")
-pak::pak("seangriffin/estatr")
+pak::pak("smgriffin/estatr")
 ```
 
 ## Authentication

@@ -38,6 +38,6 @@ Suggests:
     withr
 VignetteBuilder: knitr
 Config/testthat/edition: 3
-URL: https://github.com/seangriffin/estatr
-BugReports: https://github.com/seangriffin/estatr/issues
+URL: https://github.com/smgriffin/estatr
+BugReports: https://github.com/smgriffin/estatr/issues
 LazyData: true
