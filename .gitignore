@@ -1,0 +1,23 @@
+# Secrets - never commit
+.Renviron
+.Renviron.*
+
+# R
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+*.Rproj
+
+# R package build artifacts
+/*.Rcheck/
+/*.tar.gz
+inst/doc
+
+# macOS
+.DS_Store
+
+# httptest2 fixtures should be committed (no secrets in them),
+# but anything under a "secrets" or "creds" dir should not be
+secrets/
+creds/

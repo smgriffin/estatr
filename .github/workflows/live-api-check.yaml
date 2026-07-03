@@ -1,0 +1,51 @@
+# Manually-triggered / scheduled job that hits the LIVE e-Stat API to catch
+# upstream drift, gated behind the ESTAT_API_KEY repo secret. Kept off the
+# per-push path so normal CI stays offline, fast, and secret-free (see the
+# roadmap Testing strategy).
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 6 * * 1' # weekly, Monday 06:17 UTC
+
+name: live-api-check.yaml
+
+permissions: read-all
+
+jobs:
+  live-api-check:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      ESTAT_API_KEY: ${{ secrets.ESTAT_API_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::rcmdcheck
+          needs: check
+
+      - name: Skip if no key configured
+        id: guard
+        run: |
+          if [ -z "${ESTAT_API_KEY}" ]; then
+            echo "No ESTAT_API_KEY secret set; skipping live checks."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+        shell: bash
+
+      - name: Live smoke test against e-Stat
+        if: steps.guard.outputs.run == 'true'
+        run: |
+          pkgload::load_all()
+          res <- estat_stats_list(searchWord = "労働力調査", limit = 3)
+          stopifnot(tibble::is_tibble(res), nrow(res) >= 1, "id" %in% names(res))
+          cat("Live e-Stat smoke test OK:", nrow(res), "rows\n")
+        shell: Rscript {0}

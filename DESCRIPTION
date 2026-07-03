@@ -1,0 +1,37 @@
+Package: estatr
+Title: Tidy Access to Japanese Government Statistics (e-Stat API)
+Version: 0.0.0.9000
+Authors@R:
+    person("Sean", "Griffin", , "bantam-lists-79@icloud.com", role = c("aut", "cre"))
+Description: A tidy, tidycensus-style interface to the Japanese
+    government-wide statistics catalog served by the e-Stat API
+    (<https://api.e-stat.go.jp>). Wraps table search, classification
+    metadata, and data retrieval, decoding e-Stat's numeric codes into
+    human-readable labels and returning tibbles that pipe into the
+    tidyverse. Internals use 'data.table' for speed on large tables;
+    output is a plain tibble at the return boundary.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Language: en-US
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
+Depends:
+    R (>= 4.1)
+Imports:
+    cli,
+    data.table,
+    httr2,
+    jsonlite,
+    lifecycle,
+    rlang,
+    tibble
+Suggests:
+    bench,
+    dplyr,
+    httptest2,
+    purrr,
+    testthat (>= 3.0.0),
+    withr
+Config/testthat/edition: 3
+URL: https://github.com/seangriffin/estatr
+BugReports: https://github.com/seangriffin/estatr/issues

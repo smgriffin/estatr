@@ -1,0 +1,17 @@
+^estatr\.Rproj$
+^\.Rproj\.user$
+^LICENSE\.md$
+^README\.Rmd$
+^\.github$
+^\.Renviron$
+^\.Renviron\..*$
+^ROADMAP\.md$
+^\.gitignore$
+^codecov\.yml$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
+^CONTRIBUTING\.md$
+^CODE_OF_CONDUCT\.md$
+^\.vscode$
+^cran-comments\.md$
