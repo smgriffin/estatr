@@ -9,7 +9,7 @@
 ## introduced; keep this list in sync with the internal parsing/join code.
 .datatable.aware <- TRUE
 
-utils::globalVariables(c("."))
+utils::globalVariables(c(".", "code", "name", "label", "value", "annotation"))
 
 ## usethis namespace: start
 #' @importFrom data.table :=

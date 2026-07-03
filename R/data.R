@@ -1,0 +1,20 @@
+#' Japanese prefectures with JIS codes and e-Stat area codes
+#'
+#' The 47 Japanese prefectures (都道府県) with their JIS X 0401 codes and
+#' English/Japanese names, for joining and filtering e-Stat `area` codes without
+#' another API round-trip. The e-Stat whole-prefecture `area` code is the 2-digit
+#' JIS code followed by `"000"` (e.g. Tokyo = `"13000"`).
+#'
+#' @format A tibble with 47 rows and 5 columns:
+#' \describe{
+#'   \item{code}{2-digit JIS X 0401 prefecture code, e.g. `"13"`.}
+#'   \item{area_code}{5-digit e-Stat area code for the whole prefecture, e.g. `"13000"`.}
+#'   \item{name_en}{English (romaji) prefecture name, e.g. `"Tokyo"`.}
+#'   \item{name_ja}{Japanese prefecture name, e.g. `"東京都"`.}
+#'   \item{region_en}{English region name, e.g. `"Kanto"`.}
+#' }
+#' @source JIS X 0401 (Japanese Industrial Standard) prefecture codes.
+#' @examples
+#' head(prefectures)
+#' # Join onto a get_estat() result by area_code to add English names
+"prefectures"

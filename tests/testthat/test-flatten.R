@@ -27,6 +27,20 @@ test_that("records_to_dt handles the empty case", {
   expect_equal(nrow(dt), 0L)
 })
 
+test_that("flatten_record indexes arrays of objects instead of colliding names", {
+  rec <- list(
+    "@id" = "A",
+    RESOURCES = list(RESOURCE = list(
+      list("@id" = "r1", URL = "u1"),
+      list("@id" = "r2", URL = "u2")
+    ))
+  )
+  flat <- flatten_record(rec)
+  expect_false(any(duplicated(names(flat))))
+  expect_equal(flat[["RESOURCES_RESOURCE_1_id"]], "r1")
+  expect_equal(flat[["RESOURCES_RESOURCE_2_URL"]], "u2")
+})
+
 test_that("as_record_list normalises single vs. many records", {
   single <- list("@id" = "1", TITLE = "x")
   many <- list(list("@id" = "1"), list("@id" = "2"))

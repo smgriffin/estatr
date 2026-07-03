@@ -13,6 +13,17 @@ flatten_record <- function(record, prefix = NULL) {
     return(stats::setNames(list(record %||% NA), prefix %||% "value"))
   }
 
+  # An unnamed list is a JSON array (e.g. a table's multiple RESOURCE files);
+  # index its elements so they don't collapse into duplicate column names.
+  if (is_json_array(record)) {
+    out <- list()
+    for (j in seq_along(record)) {
+      child_name <- if (is.null(prefix)) as.character(j) else paste(prefix, j, sep = "_")
+      out <- c(out, flatten_record(record[[j]], child_name))
+    }
+    return(out)
+  }
+
   out <- list()
   nms <- names(record)
   for (i in seq_along(record)) {
@@ -34,6 +45,12 @@ flatten_record <- function(record, prefix = NULL) {
     }
   }
   out
+}
+
+# A JSON array parses to a list with no names (or all-empty names); a JSON
+# object parses to a named list.
+is_json_array <- function(x) {
+  is.list(x) && length(x) > 0 && (is.null(names(x)) || all(!nzchar(names(x))))
 }
 
 # Assemble a list of records into a data.table, filling missing columns with NA
