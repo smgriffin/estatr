@@ -9,6 +9,11 @@ reference:
   contents:
   - get_estat
   - pivot_estat_wide
+- title: Geometry / mapping
+  desc: Official e-Stat boundary polygons for choropleth maps (needs sf).
+  contents:
+  - estat_boundaries
+  - estat_join_geometry
 - title: Discovery
   desc: Find the table you need.
   contents:
@@ -45,3 +50,4 @@ articles:
   - finding-tables
   - time-series
   - data-model
+  - mapping

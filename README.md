@@ -20,8 +20,8 @@ tables, converting to a plain tibble only at the return boundary.
 
 > **Status:** development version, feature-complete for a first release. Search,
 > metadata, data retrieval with automatic parallel pagination, label decoding,
-> caching, and resumable pulls are all in place. Geometry/mapping support is
-> deferred to a future release.
+> caching, resumable pulls, and choropleth-ready boundary geometry
+> (`geometry = TRUE`, via the suggested `sf` package) are all in place.
 
 ## Installation
 
@@ -62,6 +62,11 @@ d <- get_estat("0003217721", limit = 500)
 
 # 3. Or skip the id lookup with a curated shortcut
 lfs <- get_labour_force_survey(limit = 500)
+
+# 4. Map it: get an sf object with official e-Stat boundaries joined on
+library(sf)
+pop <- get_estat("0003433219", cdCat01 = "0", geometry = TRUE,
+                 geometry_level = "prefecture", geometry_year = 2020)
 ```
 
 `get_estat()` returns one row per observation with paired label/code columns,

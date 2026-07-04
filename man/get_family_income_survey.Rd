@@ -20,6 +20,13 @@ even the boundary conversion. Defaults to \code{FALSE}.}
 matching rows.}
     \item{\code{checkpoint}}{Optional path to a checkpoint file for resumable pulls (see
 \code{\link[=estat_stats_data]{estat_stats_data()}}).}
+    \item{\code{geometry}}{If \code{TRUE}, join e-Stat boundary polygons onto the result by
+\code{area_code} and return an \link[sf:sf]{sf} object for choropleth mapping (see
+\code{\link[=estat_join_geometry]{estat_join_geometry()}}). Requires the \pkg{sf} package and
+\code{decode_labels = TRUE}. Defaults to \code{FALSE}.}
+    \item{\code{geometry_level,geometry_year,geometry_datum}}{Passed to
+\code{\link[=estat_join_geometry]{estat_join_geometry()}} when \code{geometry = TRUE}. Match \code{geometry_year} to the
+census year of your data.}
     \item{\code{key}}{e-Stat appId. Defaults to the stored key.}
   }}
 }

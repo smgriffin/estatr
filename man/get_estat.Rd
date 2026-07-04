@@ -11,6 +11,10 @@ get_estat(
   as_data_table = FALSE,
   limit = NULL,
   checkpoint = NULL,
+  geometry = FALSE,
+  geometry_level = "auto",
+  geometry_year = 2020,
+  geometry_datum = "2000",
   key = get_estat_key()
 )
 }
@@ -35,11 +39,21 @@ matching rows.}
 \item{checkpoint}{Optional path to a checkpoint file for resumable pulls (see
 \code{\link[=estat_stats_data]{estat_stats_data()}}).}
 
+\item{geometry}{If \code{TRUE}, join e-Stat boundary polygons onto the result by
+\code{area_code} and return an \link[sf:sf]{sf} object for choropleth mapping (see
+\code{\link[=estat_join_geometry]{estat_join_geometry()}}). Requires the \pkg{sf} package and
+\code{decode_labels = TRUE}. Defaults to \code{FALSE}.}
+
+\item{geometry_level, geometry_year, geometry_datum}{Passed to
+\code{\link[=estat_join_geometry]{estat_join_geometry()}} when \code{geometry = TRUE}. Match \code{geometry_year} to the
+census year of your data.}
+
 \item{key}{e-Stat appId. Defaults to the stored key.}
 }
 \value{
-A tidy \link[tibble:tibble]{tibble} (or \code{data.table} if \code{as_data_table}),
-with a \code{notes} attribute holding the table's annotation legend.
+A tidy \link[tibble:tibble]{tibble} (or \code{data.table} if \code{as_data_table},
+or an \link[sf:sf]{sf} object if \code{geometry = TRUE}), with a \code{notes}
+attribute holding the table's annotation legend.
 }
 \description{
 The main entry point. Given a \code{statsDataId}, fetches the data and its

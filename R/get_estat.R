@@ -29,9 +29,17 @@
 #'   matching rows.
 #' @param checkpoint Optional path to a checkpoint file for resumable pulls (see
 #'   [estat_stats_data()]).
+#' @param geometry If `TRUE`, join e-Stat boundary polygons onto the result by
+#'   `area_code` and return an [sf][sf::st_sf] object for choropleth mapping (see
+#'   [estat_join_geometry()]). Requires the \pkg{sf} package and
+#'   `decode_labels = TRUE`. Defaults to `FALSE`.
+#' @param geometry_level,geometry_year,geometry_datum Passed to
+#'   [estat_join_geometry()] when `geometry = TRUE`. Match `geometry_year` to the
+#'   census year of your data.
 #' @param key e-Stat appId. Defaults to the stored key.
-#' @return A tidy [tibble][tibble::tibble] (or `data.table` if `as_data_table`),
-#'   with a `notes` attribute holding the table's annotation legend.
+#' @return A tidy [tibble][tibble::tibble] (or `data.table` if `as_data_table`,
+#'   or an [sf][sf::st_sf] object if `geometry = TRUE`), with a `notes`
+#'   attribute holding the table's annotation legend.
 #' @export
 #' @examples
 #' \dontrun{
@@ -41,8 +49,16 @@
 #' }
 get_estat <- function(statsDataId, ..., decode_labels = TRUE,
                       as_data_table = FALSE, limit = NULL,
-                      checkpoint = NULL, key = get_estat_key()) {
+                      checkpoint = NULL, geometry = FALSE,
+                      geometry_level = "auto", geometry_year = 2020,
+                      geometry_datum = "2000", key = get_estat_key()) {
   validate_stats_data_args(statsDataId, limit, 1L)
+  if (isTRUE(geometry) && !isTRUE(decode_labels)) {
+    cli::cli_abort(
+      "{.code geometry = TRUE} requires {.code decode_labels = TRUE} (it joins on {.field area_code}).",
+      class = "estat_error_invalid_arg"
+    )
+  }
 
   params <- c(list(statsDataId = statsDataId), list(...))
   res <- collect_stats_data(params, key = key, pull_limit = limit, checkpoint = checkpoint)
@@ -61,9 +77,17 @@ get_estat <- function(statsDataId, ..., decode_labels = TRUE,
   }
 
   data.table::setattr(dt, "notes", notes)
-  if (isTRUE(as_data_table)) return(dt[])
+  if (isTRUE(as_data_table) && !isTRUE(geometry)) return(dt[])
   out <- tibble::as_tibble(dt)
   attr(out, "notes") <- notes
+
+  if (isTRUE(geometry)) {
+    sf_out <- estat_join_geometry(
+      out, level = geometry_level, year = geometry_year, datum = geometry_datum
+    )
+    attr(sf_out, "notes") <- notes
+    return(sf_out)
+  }
   out
 }
 

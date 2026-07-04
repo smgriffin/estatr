@@ -48,7 +48,14 @@ e-Stat API, covering roadmap milestones M0–M6.
   to persist completed page offsets, so an interrupted large pull resumes by
   re-requesting only the missing pages.
 
-## Not yet included
+## Geometry / mapping
 
-* Geometry / mapping support (`geometry = TRUE`-style choropleths) is deferred to
-  a future release.
+* `get_estat(geometry = TRUE)` returns an `sf` object with official e-Stat
+  boundary polygons joined on `area_code`, ready for choropleth mapping.
+* `estat_boundaries()` downloads and dissolves e-Stat census boundaries to the
+  prefecture, municipality, or small-area (町丁・字) level; `estat_join_geometry()`
+  attaches them to an existing `get_estat()` result. Boundaries are cached, read
+  with the correct Shift-JIS encoding and JGD2000/2011 CRS, and repaired with
+  `st_make_valid()`. Requires the suggested \pkg{sf} package. Match the boundary
+  `year` to your data's census year, since municipality codes change between
+  censuses.
