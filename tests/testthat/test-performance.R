@@ -27,11 +27,12 @@ make_value_records <- function(n) {
   })
 }
 
-test_that("bulk VALUE parsing stays fast (no row-wise regression)", {
+test_that("bulk VALUE parsing stays fast (column-wise, no row-wise regression)", {
   recs <- make_value_records(30000L)
-  tm <- bench::mark(records_to_dt(recs), iterations = 2, check = FALSE, filter_gc = FALSE)
-  # 30k records should parse well under this; a row-wise loop would blow past it.
-  expect_lt(as.numeric(tm$median), 8)
+  # flat_records_to_dt is the hot path used by values_from_bodies. A row-wise
+  # or per-record-as.data.table regression would blow past this generous bound.
+  tm <- bench::mark(flat_records_to_dt(recs), iterations = 2, check = FALSE, filter_gc = FALSE)
+  expect_lt(as.numeric(tm$median), 3)
 })
 
 test_that("code->label decoding stays fast (data.table join, not per-row)", {

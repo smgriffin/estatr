@@ -72,7 +72,9 @@ collect_stats_data <- function(params, key = get_estat_key(),
   list(values = values, meta_body = page1)
 }
 
-# Pull the VALUE rows out of a set of page bodies into one data.table.
+# Pull the VALUE rows out of a set of page bodies into one data.table. VALUE rows
+# are flat records, so the column-wise fast builder handles them (this is the hot
+# path on large multi-page pulls).
 values_from_bodies <- function(bodies) {
   records <- unlist(
     lapply(bodies, function(b) {
@@ -80,7 +82,7 @@ values_from_bodies <- function(bodies) {
     }),
     recursive = FALSE
   )
-  records_to_dt(records)
+  flat_records_to_dt(records)
 }
 
 # Split a vector of offsets into batches of at most `size`.
