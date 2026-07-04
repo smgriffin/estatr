@@ -68,6 +68,12 @@ validate_boundary_year_datum <- function(year, datum) {
 #'   `"2011"` (JGD2011, EPSG:6668).
 #' @param cache If `TRUE` (default), cache downloaded boundary files under
 #'   [estat_cache_dir()].
+#' @param designated_cities How to handle the 20 ordinance-designated cities and
+#'   Tokyo's special wards at `level = "municipality"`, since e-Stat's shapefiles
+#'   carry only ward codes: `"both"` (default) returns ward polygons *and* a
+#'   unioned parent-city polygon (e.g. both `01101`… and `01100` 札幌市), so data
+#'   coded at either level joins; `"ward"` returns wards only; `"city"` returns
+#'   the parent city only. Ignored for other levels.
 #' @return An [sf][sf::st_sf] object with `area_code`, name columns, and geometry.
 #' @export
 #' @examples
@@ -77,10 +83,12 @@ validate_boundary_year_datum <- function(year, datum) {
 #' }
 estat_boundaries <- function(areas = NULL,
                              level = c("municipality", "prefecture", "small_area"),
-                             year = 2020, datum = c("2000", "2011"), cache = TRUE) {
+                             year = 2020, datum = c("2000", "2011"), cache = TRUE,
+                             designated_cities = c("both", "ward", "city")) {
   check_sf_installed()
   level <- rlang::arg_match(level)
   datum <- rlang::arg_match(datum)
+  designated_cities <- rlang::arg_match(designated_cities)
   validate_boundary_year_datum(year, datum)
 
   prefs <- resolve_prefectures(areas)
@@ -92,7 +100,7 @@ estat_boundaries <- function(areas = NULL,
   }
   parts <- lapply(prefs, function(p) {
     sa <- read_boundary_small_area(p, year = year, datum = datum, cache = cache)
-    dissolve_boundary(sa, level = level)
+    dissolve_boundary(sa, level = level, designated = designated_cities)
   })
   out <- do.call(rbind, parts)
 
@@ -203,7 +211,7 @@ download_boundary <- function(url, dest) {
 
 # Dissolve small-area polygons up to the requested administrative level and
 # attach a clean `area_code` plus name columns.
-dissolve_boundary <- function(sa, level) {
+dissolve_boundary <- function(sa, level, designated = "both") {
   if (identical(level, "small_area")) {
     # Dissolve by KEY_CODE: a single small area can span several polygon rows.
     sa$area_code <- as.character(sa$KEY_CODE)
@@ -229,7 +237,40 @@ dissolve_boundary <- function(sa, level) {
     FUN = function(z) z[1],
     do_union = TRUE
   )
+
+  # For designated cities, e-Stat carries only ward codes; add (or substitute)
+  # the unioned parent-city polygon so parent-level data can join.
+  if (identical(level, "municipality") && !identical(designated, "ward")) {
+    agg <- rollup_designated_cities(agg, mode = designated)
+  }
   agg
+}
+
+# Union each designated city's ward polygons into a single parent-city polygon
+# (coded e.g. 01100 札幌市). mode = "both" keeps wards and adds the parent;
+# mode = "city" replaces the wards with the parent only. See .estatr_designated.
+rollup_designated_cities <- function(muni, mode = "both") {
+  codes <- suppressWarnings(as.integer(muni$area_code))
+  keep <- rep(TRUE, nrow(muni))
+  parents <- list()
+
+  for (i in seq_len(nrow(.estatr_designated))) {
+    d <- .estatr_designated[i, ]
+    idx <- which(!is.na(codes) & codes >= d$ward_min & codes <= d$ward_max)
+    if (length(idx) == 0) next
+
+    # Build the parent row from a ward prototype so columns/CRS line up exactly.
+    proto <- muni[idx[1], ]
+    sf::st_geometry(proto) <- sf::st_union(sf::st_geometry(muni)[idx])
+    proto$area_code <- d$parent_code
+    if ("CITY_NAME" %in% names(proto)) proto$CITY_NAME <- d$parent_name
+    parents[[length(parents) + 1L]] <- proto
+
+    if (identical(mode, "city")) keep[idx] <- FALSE
+  }
+
+  if (length(parents) == 0) return(muni)
+  do.call(rbind, c(list(muni[keep, ]), parents))
 }
 
 #' Attach boundary geometry to e-Stat data
@@ -242,8 +283,9 @@ dissolve_boundary <- function(sa, level) {
 #' @param data A tibble from [get_estat()] (decoded, with an `area_code` column).
 #' @param level Geographic level, or `"auto"` (default) to infer: `"prefecture"`
 #'   if every `area_code` ends in `"000"`, otherwise `"municipality"`.
-#' @param year,datum Passed to [estat_boundaries()]. Match `year` to your data's
-#'   census year.
+#' @param year,datum,designated_cities Passed to [estat_boundaries()]. Match
+#'   `year` to your data's census year. `designated_cities` defaults to `"both"`
+#'   so data coded at either ward or parent-city level joins.
 #' @return An [sf][sf::st_sf] object: the input columns plus a `geometry` column.
 #' @export
 #' @examples
@@ -252,10 +294,12 @@ dissolve_boundary <- function(sa, level) {
 #' sf_d <- estat_join_geometry(d, level = "prefecture", year = 2020)
 #' }
 estat_join_geometry <- function(data, level = c("auto", "municipality", "prefecture", "small_area"),
-                                year = 2020, datum = c("2000", "2011")) {
+                                year = 2020, datum = c("2000", "2011"),
+                                designated_cities = c("both", "ward", "city")) {
   check_sf_installed()
   level <- rlang::arg_match(level)
   datum <- rlang::arg_match(datum)
+  designated_cities <- rlang::arg_match(designated_cities)
 
   if (!"area_code" %in% names(data)) {
     cli::cli_abort(
@@ -272,7 +316,10 @@ estat_join_geometry <- function(data, level = c("auto", "municipality", "prefect
     level <- if (length(codes) > 0 && all(grepl("000$", codes))) "prefecture" else "municipality"
   }
 
-  bnd <- estat_boundaries(areas = codes, level = level, year = year, datum = datum)
+  bnd <- estat_boundaries(
+    areas = codes, level = level, year = year, datum = datum,
+    designated_cities = designated_cities
+  )
 
   # Warn loudly about codes that got no geometry rather than silently returning
   # empty polygons -- the usual cause is a boundary year/level that doesn't match

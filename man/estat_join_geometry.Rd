@@ -8,7 +8,8 @@ estat_join_geometry(
   data,
   level = c("auto", "municipality", "prefecture", "small_area"),
   year = 2020,
-  datum = c("2000", "2011")
+  datum = c("2000", "2011"),
+  designated_cities = c("both", "ward", "city")
 )
 }
 \arguments{
@@ -17,8 +18,9 @@ estat_join_geometry(
 \item{level}{Geographic level, or \code{"auto"} (default) to infer: \code{"prefecture"}
 if every \code{area_code} ends in \code{"000"}, otherwise \code{"municipality"}.}
 
-\item{year, datum}{Passed to \code{\link[=estat_boundaries]{estat_boundaries()}}. Match \code{year} to your data's
-census year.}
+\item{year, datum, designated_cities}{Passed to \code{\link[=estat_boundaries]{estat_boundaries()}}. Match
+\code{year} to your data's census year. \code{designated_cities} defaults to \code{"both"}
+so data coded at either ward or parent-city level joins.}
 }
 \value{
 An \link[sf:sf]{sf} object: the input columns plus a \code{geometry} column.

@@ -15,6 +15,7 @@ get_estat(
   geometry_level = "auto",
   geometry_year = 2020,
   geometry_datum = "2000",
+  geometry_designated_cities = "both",
   key = get_estat_key()
 )
 }
@@ -44,9 +45,8 @@ matching rows.}
 \code{\link[=estat_join_geometry]{estat_join_geometry()}}). Requires the \pkg{sf} package and
 \code{decode_labels = TRUE}. Defaults to \code{FALSE}.}
 
-\item{geometry_level, geometry_year, geometry_datum}{Passed to
-\code{\link[=estat_join_geometry]{estat_join_geometry()}} when \code{geometry = TRUE}. Match \code{geometry_year} to the
-census year of your data.}
+\item{geometry_level, geometry_year, geometry_datum, geometry_designated_cities}{Passed to \code{\link[=estat_join_geometry]{estat_join_geometry()}} when \code{geometry = TRUE}. Match
+\code{geometry_year} to the census year of your data.}
 
 \item{key}{e-Stat appId. Defaults to the stored key.}
 }

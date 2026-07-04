@@ -9,7 +9,8 @@ estat_boundaries(
   level = c("municipality", "prefecture", "small_area"),
   year = 2020,
   datum = c("2000", "2011"),
-  cache = TRUE
+  cache = TRUE,
+  designated_cities = c("both", "ward", "city")
 )
 }
 \arguments{
@@ -31,6 +32,13 @@ between censuses (mergers), so a mismatched year can mis-join.}
 
 \item{cache}{If \code{TRUE} (default), cache downloaded boundary files under
 \code{\link[=estat_cache_dir]{estat_cache_dir()}}.}
+
+\item{designated_cities}{How to handle the 20 ordinance-designated cities and
+Tokyo's special wards at \code{level = "municipality"}, since e-Stat's shapefiles
+carry only ward codes: \code{"both"} (default) returns ward polygons \emph{and} a
+unioned parent-city polygon (e.g. both \code{01101}… and \code{01100} 札幌市), so data
+coded at either level joins; \code{"ward"} returns wards only; \code{"city"} returns
+the parent city only. Ignored for other levels.}
 }
 \value{
 An \link[sf:sf]{sf} object with \code{area_code}, name columns, and geometry.

@@ -100,17 +100,67 @@ test_that("estat_join_geometry warns about area codes with no geometry", {
   skip_if_not_installed("sf")
   fake_muni <- dissolve_boundary(make_fake_small_area(), "municipality") # 99201, 99202
   testthat::local_mocked_bindings(
-    estat_boundaries = function(areas, level, year, datum) fake_muni
+    estat_boundaries = function(areas, level, year, datum, ...) fake_muni
   )
   d <- tibble::tibble(area_code = c("99201", "99999"), value = c(1, 2))
   expect_warning(estat_join_geometry(d, level = "municipality"), "no municipality geometry")
+})
+
+test_that(".estatr_designated lookup is well-formed", {
+  d <- .estatr_designated
+  expect_equal(nrow(d), 21L) # 20 designated cities + Tokyo special wards
+  expect_true(all(d$ward_min <= d$ward_max))
+  expect_false(any(duplicated(d$parent_code)))
+  expect_true(all(grepl("^[0-9]{5}$", d$parent_code)))
+})
+
+# A tiny municipality-level sf: two Sapporo wards (01101, 01102) + one ordinary
+# municipality (01202 Otaru), for testing the designated-city rollup.
+make_fake_muni <- function() {
+  sq <- function(x0) sf::st_polygon(list(rbind(
+    c(x0, 0), c(x0 + 1, 0), c(x0 + 1, 1), c(x0, 1), c(x0, 0)
+  )))
+  sf::st_sf(
+    area_code = c("01101", "01102", "01202"),
+    PREF_NAME = c("北海道", "北海道", "北海道"),
+    CITY_NAME = c("札幌市中央区", "札幌市北区", "小樽市"),
+    geometry = sf::st_sfc(sq(0), sq(1), sq(3), crs = 4612)
+  )
+}
+
+test_that("rollup 'both' adds a parent-city polygon and keeps wards", {
+  skip_if_not_installed("sf")
+  r <- rollup_designated_cities(make_fake_muni(), mode = "both")
+  expect_equal(nrow(r), 4L) # 3 originals + 01100 parent
+  expect_true("01100" %in% r$area_code)
+  expect_true(all(c("01101", "01102", "01202") %in% r$area_code))
+  expect_equal(r$CITY_NAME[r$area_code == "01100"], "札幌市")
+  # Parent polygon is the union of the two (non-overlapping) wards, so its area
+  # equals their combined area (computed the same way, so CRS units cancel).
+  parent_area <- as.numeric(sf::st_area(r[r$area_code == "01100", ]))
+  ward_area <- sum(as.numeric(sf::st_area(r[r$area_code %in% c("01101", "01102"), ])))
+  expect_equal(parent_area, ward_area, tolerance = 1e-6)
+})
+
+test_that("rollup 'city' replaces wards with the parent only", {
+  skip_if_not_installed("sf")
+  r <- rollup_designated_cities(make_fake_muni(), mode = "city")
+  expect_setequal(r$area_code, c("01100", "01202")) # wards gone, Otaru kept
+})
+
+test_that("rollup leaves non-designated municipalities untouched", {
+  skip_if_not_installed("sf")
+  only_otaru <- make_fake_muni()[3, ]
+  r <- rollup_designated_cities(only_otaru, mode = "both")
+  expect_equal(nrow(r), 1L)
+  expect_equal(r$area_code, "01202")
 })
 
 test_that("estat_join_geometry attaches geometry to data rows by area_code", {
   skip_if_not_installed("sf")
   fake_muni <- dissolve_boundary(make_fake_small_area(), "municipality")
   testthat::local_mocked_bindings(
-    estat_boundaries = function(areas, level, year, datum) fake_muni
+    estat_boundaries = function(areas, level, year, datum, ...) fake_muni
   )
   d <- tibble::tibble(
     area_code = c("99201", "99202", "99201"),

@@ -59,3 +59,9 @@ e-Stat API, covering roadmap milestones M0–M6.
   `st_make_valid()`. Requires the suggested \pkg{sf} package. Match the boundary
   `year` to your data's census year, since municipality codes change between
   censuses.
+* Designated cities (政令指定都市) and Tokyo's special wards: e-Stat's shapefiles
+  carry only ward codes, but its statistics report at both ward and parent-city
+  level. `designated_cities = "both"` (the default) returns both the ward
+  polygons and a unioned parent-city polygon (e.g. `01101`… and `01100` 札幌市),
+  so data coded at either level joins without holes; `"ward"` and `"city"` select
+  one or the other.

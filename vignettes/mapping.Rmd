@@ -83,12 +83,21 @@ pop_proj <- sf::st_transform(pop, 6684) # JGD2011 / Japan Plane Rectangular CS
 
 For ordinance-designated cities (政令指定都市) and Tokyo, e-Stat's boundary files
 use **ward** codes (e.g. Sapporo's wards `01101`–`01110`), not the parent-city
-code (`01100`). Since e-Stat *statistics* also use ward codes for these cities,
-the `"municipality"` join is correct row-for-row. But if a particular table
-reports a designated city at the parent-city level, that code won't match a
-ward polygon — `estat_join_geometry()` warns about any unmatched codes rather
-than silently dropping them, so you can spot it. Rolling wards up to parent
-cities is a planned convenience.
+code (`01100`) — but e-Stat *statistics* report these cities at both levels. By
+default (`designated_cities = "both"`), `estatr` returns both the ward polygons
+*and* a unioned parent-city polygon, so data coded either way joins with no
+holes:
+
+```{r}
+# Sapporo appears as its 10 wards AND as 01100 札幌市 (union of the wards)
+bnd <- estat_boundaries("01", level = "municipality", year = 2020)
+```
+
+Use `designated_cities = "ward"` for wards only, or `"city"` to replace each
+designated city's wards with just the parent-city polygon. The same argument is
+available on `estat_join_geometry()` and as `geometry_designated_cities` in
+`get_estat()`. Any code that still finds no polygon triggers a warning rather
+than a silent gap.
 
 Note also e-Stat's own disclaimer: these boundaries are drawn for statistical
 tabulation and do not necessarily coincide with legal administrative borders.

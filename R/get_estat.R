@@ -33,9 +33,9 @@
 #'   `area_code` and return an [sf][sf::st_sf] object for choropleth mapping (see
 #'   [estat_join_geometry()]). Requires the \pkg{sf} package and
 #'   `decode_labels = TRUE`. Defaults to `FALSE`.
-#' @param geometry_level,geometry_year,geometry_datum Passed to
-#'   [estat_join_geometry()] when `geometry = TRUE`. Match `geometry_year` to the
-#'   census year of your data.
+#' @param geometry_level,geometry_year,geometry_datum,geometry_designated_cities
+#'   Passed to [estat_join_geometry()] when `geometry = TRUE`. Match
+#'   `geometry_year` to the census year of your data.
 #' @param key e-Stat appId. Defaults to the stored key.
 #' @return A tidy [tibble][tibble::tibble] (or `data.table` if `as_data_table`,
 #'   or an [sf][sf::st_sf] object if `geometry = TRUE`), with a `notes`
@@ -51,7 +51,8 @@ get_estat <- function(statsDataId, ..., decode_labels = TRUE,
                       as_data_table = FALSE, limit = NULL,
                       checkpoint = NULL, geometry = FALSE,
                       geometry_level = "auto", geometry_year = 2020,
-                      geometry_datum = "2000", key = get_estat_key()) {
+                      geometry_datum = "2000", geometry_designated_cities = "both",
+                      key = get_estat_key()) {
   validate_stats_data_args(statsDataId, limit, 1L)
   if (isTRUE(geometry) && !isTRUE(decode_labels)) {
     cli::cli_abort(
@@ -83,7 +84,8 @@ get_estat <- function(statsDataId, ..., decode_labels = TRUE,
 
   if (isTRUE(geometry)) {
     sf_out <- estat_join_geometry(
-      out, level = geometry_level, year = geometry_year, datum = geometry_datum
+      out, level = geometry_level, year = geometry_year, datum = geometry_datum,
+      designated_cities = geometry_designated_cities
     )
     attr(sf_out, "notes") <- notes
     return(sf_out)
