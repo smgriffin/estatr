@@ -30,6 +30,7 @@ Imports:
 Suggests:
     bench,
     dplyr,
+    ggplot2,
     httptest2,
     knitr,
     purrr,

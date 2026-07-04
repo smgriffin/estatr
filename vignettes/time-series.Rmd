@@ -9,14 +9,17 @@ vignette: >
 
 ```{r, include = FALSE}
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
-library(estatr)
-library(dplyr)
-library(ggplot2)
 ```
 
 e-Stat's strength is long, consistent time series across all 47 prefectures.
 This article shows a typical workflow: pull a series, filter by time and area,
 and plot it.
+
+```{r setup}
+library(estatr)
+library(dplyr)
+library(ggplot2)
+```
 
 ## Filtering server-side
 
