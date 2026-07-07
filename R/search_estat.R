@@ -31,6 +31,7 @@ search_estat_columns <- c(
 #'   `yyyymm`) to restrict to recently refreshed tables.
 #' @param limit Maximum number of tables to return (default 100).
 #' @param ... Further parameters passed through to [estat_stats_list()].
+#' @inheritParams get_estat
 #' @param key e-Stat appId. Defaults to the stored key.
 #' @return A [tibble][tibble::tibble] of matching tables, friendly columns first.
 #' @export
@@ -41,13 +42,15 @@ search_estat_columns <- c(
 #' }
 search_estat <- function(keyword = NULL, gov_org = NULL,
                          updated_from = NULL, updated_to = NULL,
-                         limit = 100L, ..., key = get_estat_key()) {
+                         limit = 100L, ..., lang = getOption("estatr.lang", "E"),
+                         key = get_estat_key()) {
   updated <- collapse_date_range(updated_from, updated_to)
   raw <- estat_stats_list(
     searchWord = keyword,
     limit = limit,
     updatedDate = updated,
     ...,
+    lang = lang,
     key = key
   )
   reorder_search_columns(raw)

@@ -46,18 +46,23 @@ sessions. The key is a secret: never commit it or paste it into issues.
 
 ## Usage
 
+By default `estatr` works in **English** — labels, category names, and search
+all come back in English (e-Stat provides the translations; the few tables with
+no English release fall back to Japanese automatically). Set
+`options(estatr.lang = "J")` or pass `lang = "J"` for Japanese.
+
 ``` r
 library(estatr)
 
-# 1. Find a table
-tables <- search_estat("労働力調査") # Labour Force Survey
+# 1. Find a table — English keywords work for the major surveys
+tables <- search_estat("Labour Force Survey")
 
 # 2. Get tidy, labelled data in one call (data + metadata, decoded)
 d <- get_estat("0003217721", limit = 500)
 #> # A tibble: 500 × 9
-#>   area  area_code time            time_code  cat01        cat01_code unit  value annotation
-#>   <chr> <chr>     <chr>           <chr>      <chr>        <chr>      <chr> <dbl> <chr>
-#> 1 全国  00000     2018年1～3月期  2018000103 15歳以上人口 00         万人  11077 NA
+#>   area      area_code time           time_code  cat01                        cat01_code unit          value annotation
+#>   <chr>     <chr>     <chr>          <chr>      <chr>                        <chr>      <chr>         <dbl> <chr>
+#> 1 All Japan 00000     Jan.-Mar. 2018 2018000103 Population aged 15 and over  00         10 thousand   11077 NA
 #> …
 
 # 3. Or skip the id lookup with a curated shortcut

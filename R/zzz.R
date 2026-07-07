@@ -9,11 +9,12 @@
 
 # Fetch metadata tables through the in-session memoise layer. Falls back to a
 # direct call if .onLoad hasn't run (e.g. under pkgload during tests).
-memo_fetch_meta_tables <- function(statsDataId, key = get_estat_key()) {
+memo_fetch_meta_tables <- function(statsDataId, key = get_estat_key(),
+                                   lang = getOption("estatr.lang", "E")) {
   fn <- .estatr$fetch_meta
   if (is.null(fn)) {
     fn <- memoise::memoise(fetch_meta_tables)
     .estatr$fetch_meta <- fn
   }
-  fn(statsDataId, key)
+  fn(statsDataId, key, lang)
 }

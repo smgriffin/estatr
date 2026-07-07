@@ -43,15 +43,31 @@ The key is read from the `ESTAT_API_KEY` environment variable at call time and
 is never stored in package state or printed. Treat it as a secret: don't commit
 it or paste it into issues. If it leaks, delete and reissue it on your mypage.
 
-## 2. Find a table
+## 2. Language
 
-Every e-Stat table has a `statsDataId`. Search the catalog with
-`search_estat()`:
+`estatr` works in **English by default** — table names, category labels, area
+and time labels, and search all come back in English, because e-Stat itself
+provides the translations. The handful of tables with no English release fall
+back to Japanese automatically (with a warning). To work in Japanese instead:
 
 ```{r}
-tables <- search_estat("労働力調査") # "Labour Force Survey"
+options(estatr.lang = "J") # for the whole session
+# ...or per call: get_estat(id, lang = "J")
+```
+
+## 3. Find a table
+
+Every e-Stat table has a `statsDataId`. Search the catalog with
+`search_estat()` — English keywords work for the major surveys:
+
+```{r}
+tables <- search_estat("Labour Force Survey")
 tables[, c("id", "stat_name", "title")]
 ```
+
+Search coverage is broadest in Japanese (not every table is indexed in
+English), so if a search comes up short, try Japanese terms or the curated
+shortcuts below.
 
 If you just want a common table without hunting, use a curated shortcut:
 
@@ -60,7 +76,7 @@ estat_curated_tables()
 lfs <- get_labour_force_survey(limit = 500)
 ```
 
-## 3. Get labelled data
+## 4. Get labelled data
 
 `get_estat()` is the main entry point. Give it a `statsDataId` and it fetches the
 data *and* its metadata in one call, decodes every numeric code to a label, and
@@ -82,7 +98,7 @@ attribute:
 attr(d, "notes")
 ```
 
-## 4. Reshape and join
+## 5. Reshape and join
 
 Pivot a classification axis into columns with `pivot_estat_wide()`:
 

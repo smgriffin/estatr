@@ -4,13 +4,22 @@
 \alias{estat_data_catalog}
 \title{Search the e-Stat data catalog for datasets and files}
 \usage{
-estat_data_catalog(searchWord = NULL, ..., key = get_estat_key())
+estat_data_catalog(
+  searchWord = NULL,
+  ...,
+  lang = getOption("estatr.lang", "E"),
+  key = get_estat_key()
+)
 }
 \arguments{
 \item{searchWord}{Keyword(s) to search. Japanese is supported.}
 
 \item{...}{Further query parameters passed to \code{getDataCatalog} verbatim
 (e.g. \code{statsCode}, \code{dataType}, \code{limit}, \code{startPosition}).}
+
+\item{lang}{Label language: \code{"E"} for English (the package default, settable
+with \code{options(estatr.lang = )}) or \code{"J"} for Japanese. Tables that have no
+English release fall back to Japanese automatically, with a warning.}
 
 \item{key}{e-Stat appId. Defaults to the stored key.}
 }

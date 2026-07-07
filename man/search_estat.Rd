@@ -11,6 +11,7 @@ search_estat(
   updated_to = NULL,
   limit = 100L,
   ...,
+  lang = getOption("estatr.lang", "E"),
   key = get_estat_key()
 )
 }
@@ -28,6 +29,10 @@ control).}
 \item{limit}{Maximum number of tables to return (default 100).}
 
 \item{...}{Further parameters passed through to \code{\link[=estat_stats_list]{estat_stats_list()}}.}
+
+\item{lang}{Label language: \code{"E"} for English (the package default, settable
+with \code{options(estatr.lang = )}) or \code{"J"} for Japanese. Tables that have no
+English release fall back to Japanese automatically, with a warning.}
 
 \item{key}{e-Stat appId. Defaults to the stored key.}
 }

@@ -11,6 +11,7 @@
 #' id, each with `code`, `name`, `level`, `unit`, and `parent` columns.
 #'
 #' @param statsDataId The table id whose metadata to fetch.
+#' @inheritParams get_estat
 #' @param key e-Stat appId. Defaults to the stored key.
 #' @param cache If `TRUE` (default), read/write the parsed metadata from the
 #'   on-disk cache (see [estat_cache_dir()]); metadata rarely changes, so this
@@ -25,7 +26,8 @@
 #' meta <- estat_meta_info("0003217721")
 #' meta$cat01 # labels for the first category axis
 #' }
-estat_meta_info <- function(statsDataId, key = get_estat_key(), cache = TRUE,
+estat_meta_info <- function(statsDataId, lang = getOption("estatr.lang", "E"),
+                            key = get_estat_key(), cache = TRUE,
                             cache_ttl = getOption("estatr.cache_ttl", 30 * 24 * 3600)) {
   if (!rlang::is_string(statsDataId) || !nzchar(statsDataId)) {
     cli::cli_abort(
@@ -33,22 +35,27 @@ estat_meta_info <- function(statsDataId, key = get_estat_key(), cache = TRUE,
       class = "estat_error_invalid_arg"
     )
   }
+  lang <- estat_lang(lang)
 
   if (isTRUE(cache)) {
-    hit <- cache_get(meta_cache_key(statsDataId), sub = "meta", ttl = cache_ttl)
+    hit <- cache_get(meta_cache_key(statsDataId, lang), sub = "meta", ttl = cache_ttl)
     if (!is.null(hit)) return(hit)
   }
 
-  tables <- memo_fetch_meta_tables(statsDataId, key)
+  # English falls back to Japanese for tables with no English release.
+  tables <- try_with_lang_fallback(
+    lang, function(l) memo_fetch_meta_tables(statsDataId, key, l)
+  )$result
 
-  if (isTRUE(cache)) cache_set(meta_cache_key(statsDataId), tables, sub = "meta")
+  if (isTRUE(cache)) cache_set(meta_cache_key(statsDataId, lang), tables, sub = "meta")
   tables
 }
 
 # The actual getMetaInfo fetch + parse. Memoised in-session in .onLoad so
 # repeated ids within one session skip even the disk read.
-fetch_meta_tables <- function(statsDataId, key = get_estat_key()) {
-  req <- estat_request("getMetaInfo", params = list(statsDataId = statsDataId), key = key)
+fetch_meta_tables <- function(statsDataId, key = get_estat_key(),
+                              lang = getOption("estatr.lang", "E")) {
+  req <- estat_request("getMetaInfo", params = list(statsDataId = statsDataId), key = key, lang = lang)
   body <- estat_perform(req, "GET_META_INFO")
 
   meta_inf <- dig(body, "GET_META_INFO", "METADATA_INF")

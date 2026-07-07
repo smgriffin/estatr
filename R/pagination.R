@@ -21,16 +21,22 @@
 collect_stats_data <- function(params, key = get_estat_key(),
                                pull_limit = NULL, start = 1L,
                                max_active = getOption("estatr.max_active", estat_default_max_active),
-                               checkpoint = NULL) {
+                               checkpoint = NULL, lang = getOption("estatr.lang", "E")) {
   page_size <- getOption("estatr.page_size", estat_max_records_per_call)
   if (!is.null(pull_limit)) page_size <- min(pull_limit, page_size)
 
   # Page one is always fetched: it carries TOTAL_NUMBER and the bundled metadata.
-  page1 <- estat_perform(
+  # If English has no release for this table, fall back to Japanese here and use
+  # that language for every subsequent page too.
+  lang <- estat_lang(lang)
+  fetch_page1 <- function(l) estat_perform(
     estat_request("getStatsData",
-      params = c(params, list(limit = page_size, startPosition = start)), key = key),
+      params = c(params, list(limit = page_size, startPosition = start)), key = key, lang = l),
     "GET_STATS_DATA"
   )
+  got <- try_with_lang_fallback(lang, fetch_page1)
+  page1 <- got$result
+  lang <- got$lang
   info <- dig(page1, "GET_STATS_DATA", "STATISTICAL_DATA", "RESULT_INF")
   total_matched <- as_count(dig(info, "TOTAL_NUMBER"))
   to <- as_count(dig(info, "TO_NUMBER"))
@@ -56,7 +62,7 @@ collect_stats_data <- function(params, key = get_estat_key(),
       reqs <- lapply(batch, function(off) {
         this_size <- min(page_size, target_last - off + 1L)
         estat_request("getStatsData",
-          params = c(params, list(limit = this_size, startPosition = off)), key = key)
+          params = c(params, list(limit = this_size, startPosition = off)), key = key, lang = lang)
       })
       bodies <- estat_fetch_bodies(reqs, envelope = "GET_STATS_DATA", max_active = max_active)
       for (i in seq_along(batch)) {

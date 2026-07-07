@@ -22,6 +22,7 @@
 #' @param startPosition 1-based row offset to start from.
 #' @param ... Further query parameters passed through to `getStatsList`
 #'   verbatim (e.g. `updatedDate`, `openYears`).
+#' @inheritParams get_estat
 #' @param key e-Stat appId. Defaults to the stored key.
 #' @return A [tibble][tibble::tibble] with one row per matching table. Returns a
 #'   zero-row tibble when the search matches nothing.
@@ -40,6 +41,7 @@ estat_stats_list <- function(searchWord = NULL,
                              limit = NULL,
                              startPosition = NULL,
                              ...,
+                             lang = getOption("estatr.lang", "E"),
                              key = get_estat_key()) {
   params <- c(
     list(
@@ -55,7 +57,7 @@ estat_stats_list <- function(searchWord = NULL,
   )
   validate_stats_list_params(params)
 
-  req <- estat_request("getStatsList", params = params, key = key)
+  req <- estat_request("getStatsList", params = params, key = key, lang = lang)
   body <- estat_perform(req, envelope = "GET_STATS_LIST")
 
   table_inf <- dig(body, "GET_STATS_LIST", "DATALIST_INF", "TABLE_INF")

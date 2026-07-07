@@ -74,5 +74,6 @@ estat_cache_clear <- function(what = c("all", "meta", "checkpoints")) {
   invisible(removed)
 }
 
-# A stable cache key for a table's metadata.
-meta_cache_key <- function(statsDataId) paste0("meta-", statsDataId)
+# A stable cache key for a table's metadata (keyed by language, since labels
+# differ between English and Japanese).
+meta_cache_key <- function(statsDataId, lang = "E") paste0("meta-", lang, "-", statsDataId)

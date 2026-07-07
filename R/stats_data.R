@@ -23,6 +23,7 @@
 #' @param checkpoint Optional path to a checkpoint file for resumable pulls. When
 #'   set, each page's rows are persisted keyed by absolute offset, so an
 #'   interrupted large pull resumes by re-requesting only the missing pages.
+#' @inheritParams get_estat
 #' @param key e-Stat appId. Defaults to the stored key.
 #' @return A [tibble][tibble::tibble] of coded data values.
 #' @export
@@ -33,6 +34,7 @@
 #' }
 estat_stats_data <- function(statsDataId, ..., limit = NULL,
                              start_position = 1L, checkpoint = NULL,
+                             lang = getOption("estatr.lang", "E"),
                              key = get_estat_key()) {
   validate_stats_data_args(statsDataId, limit, start_position)
 
@@ -42,7 +44,8 @@ estat_stats_data <- function(statsDataId, ..., limit = NULL,
     key = key,
     pull_limit = limit,
     start = as.integer(start_position),
-    checkpoint = checkpoint
+    checkpoint = checkpoint,
+    lang = lang
   )
   tibble::as_tibble(res$values)
 }

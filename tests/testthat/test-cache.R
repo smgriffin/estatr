@@ -31,7 +31,7 @@ test_that("estat_meta_info reads from and writes to the disk cache", {
 
   first <- estat_meta_info("0003217721")
   # Cache file now exists; a second call with the network turned OFF still works.
-  key_file <- file.path(estat_cache_dir(), "meta", "meta-0003217721.rds")
+  key_file <- file.path(estat_cache_dir(), "meta", paste0(meta_cache_key("0003217721", "E"), ".rds"))
   expect_true(file.exists(key_file))
 
   httr2::local_mocked_responses(function(req) stop("network should not be hit"))

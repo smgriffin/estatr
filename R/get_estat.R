@@ -36,6 +36,9 @@
 #' @param geometry_level,geometry_year,geometry_datum,geometry_designated_cities
 #'   Passed to [estat_join_geometry()] when `geometry = TRUE`. Match
 #'   `geometry_year` to the census year of your data.
+#' @param lang Label language: `"E"` for English (the package default, settable
+#'   with `options(estatr.lang = )`) or `"J"` for Japanese. Tables that have no
+#'   English release fall back to Japanese automatically, with a warning.
 #' @param key e-Stat appId. Defaults to the stored key.
 #' @return A tidy [tibble][tibble::tibble] (or `data.table` if `as_data_table`,
 #'   or an [sf][sf::st_sf] object if `geometry = TRUE`), with a `notes`
@@ -52,7 +55,7 @@ get_estat <- function(statsDataId, ..., decode_labels = TRUE,
                       checkpoint = NULL, geometry = FALSE,
                       geometry_level = "auto", geometry_year = 2020,
                       geometry_datum = "2000", geometry_designated_cities = "both",
-                      key = get_estat_key()) {
+                      lang = getOption("estatr.lang", "E"), key = get_estat_key()) {
   validate_stats_data_args(statsDataId, limit, 1L)
   if (isTRUE(geometry) && !isTRUE(decode_labels)) {
     cli::cli_abort(
@@ -62,7 +65,8 @@ get_estat <- function(statsDataId, ..., decode_labels = TRUE,
   }
 
   params <- c(list(statsDataId = statsDataId), list(...))
-  res <- collect_stats_data(params, key = key, pull_limit = limit, checkpoint = checkpoint)
+  res <- collect_stats_data(params, key = key, pull_limit = limit,
+                            checkpoint = checkpoint, lang = lang)
 
   dt <- res$values
   notes <- notes_from_body(res$meta_body)

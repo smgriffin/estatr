@@ -101,6 +101,26 @@ estat_status_class <- function(status) {
   band
 }
 
+# Run `fetch(lang)`; if an English request fails with an e-Stat application error
+# (typically the table has no English release, so its statsDataId "does not
+# exist" in the English catalog), transparently retry in Japanese and warn,
+# rather than leaving the user with an error. Returns a list of the result and
+# the language actually used, so paginated callers can keep every page in sync.
+try_with_lang_fallback <- function(lang, fetch) {
+  tryCatch(
+    list(result = fetch(lang), lang = lang),
+    estat_api_error = function(err) {
+      if (!identical(lang, "E")) stop(err)
+      result <- tryCatch(fetch("J"), error = function(e2) stop(err))
+      cli::cli_warn(c(
+        "This table has no English release from e-Stat; returning Japanese labels.",
+        "i" = 'Pass {.code lang = "J"} to request Japanese directly and silence this warning.'
+      ))
+      list(result = result, lang = "J")
+    }
+  )
+}
+
 # Defensive nested-list accessor: dig(x, "A", "B") returns x[["A"]][["B"]] or
 # NULL if any level is missing, instead of a cryptic subscript error.
 dig <- function(x, ...) {

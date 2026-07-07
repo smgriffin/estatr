@@ -18,7 +18,8 @@
 estat_request <- function(endpoint,
                           params = list(),
                           key = get_estat_key(),
-                          throttle = getOption("estatr.throttle", estat_default_throttle)) {
+                          throttle = getOption("estatr.throttle", estat_default_throttle),
+                          lang = getOption("estatr.lang", "E")) {
   if (!nzchar(key %||% "")) {
     cli::cli_abort(
       c(
@@ -35,10 +36,11 @@ estat_request <- function(endpoint,
     req, "rest", estat_api_version(), "app", "json", endpoint
   )
 
-  # appId first, then user params. Drop NULLs so optional args can be passed
-  # through unconditionally. httr2 URL-encodes values as UTF-8 via curl.
+  # appId and language first, then user params. Drop NULLs so optional args can
+  # be passed through unconditionally. httr2 URL-encodes values as UTF-8 via curl.
   query <- c(
     stats::setNames(list(key), estat_appid_param),
+    list(lang = estat_lang(lang)),
     compact(params)
   )
   req <- inject_query(req, query)

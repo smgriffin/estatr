@@ -10,6 +10,7 @@ estat_stats_data(
   limit = NULL,
   start_position = 1L,
   checkpoint = NULL,
+  lang = getOption("estatr.lang", "E"),
   key = get_estat_key()
 )
 }
@@ -28,6 +29,10 @@ matching rows, paginating as needed.}
 \item{checkpoint}{Optional path to a checkpoint file for resumable pulls. When
 set, each page's rows are persisted keyed by absolute offset, so an
 interrupted large pull resumes by re-requesting only the missing pages.}
+
+\item{lang}{Label language: \code{"E"} for English (the package default, settable
+with \code{options(estatr.lang = )}) or \code{"J"} for Japanese. Tables that have no
+English release fall back to Japanese automatically, with a warning.}
 
 \item{key}{e-Stat appId. Defaults to the stored key.}
 }

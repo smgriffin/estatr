@@ -3,6 +3,14 @@
 First development release: a tidy, tidycensus-style interface to the Japanese
 e-Stat API, covering roadmap milestones M0–M6.
 
+## Language
+
+* Works in **English by default**: table names, category/area/time labels, and
+  search all return in English (e-Stat provides the translations). Control it
+  per call with `lang = "E"` / `"J"`, or globally with `options(estatr.lang = )`.
+* Tables that have no English release fall back to Japanese automatically, with
+  a warning, so English mode never errors or returns blanks.
+
 ## High-level data access
 
 * `get_estat()`: the main entry point. Fetches data and its classification

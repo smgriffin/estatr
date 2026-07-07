@@ -6,6 +6,7 @@
 \usage{
 estat_meta_info(
   statsDataId,
+  lang = getOption("estatr.lang", "E"),
   key = get_estat_key(),
   cache = TRUE,
   cache_ttl = getOption("estatr.cache_ttl", 30 * 24 * 3600)
@@ -13,6 +14,10 @@ estat_meta_info(
 }
 \arguments{
 \item{statsDataId}{The table id whose metadata to fetch.}
+
+\item{lang}{Label language: \code{"E"} for English (the package default, settable
+with \code{options(estatr.lang = )}) or \code{"J"} for Japanese. Tables that have no
+English release fall back to Japanese automatically, with a warning.}
 
 \item{key}{e-Stat appId. Defaults to the stored key.}
 

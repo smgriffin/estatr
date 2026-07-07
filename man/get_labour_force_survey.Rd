@@ -26,6 +26,9 @@ matching rows.}
 \code{decode_labels = TRUE}. Defaults to \code{FALSE}.}
     \item{\code{geometry_level,geometry_year,geometry_datum,geometry_designated_cities}}{Passed to \code{\link[=estat_join_geometry]{estat_join_geometry()}} when \code{geometry = TRUE}. Match
 \code{geometry_year} to the census year of your data.}
+    \item{\code{lang}}{Label language: \code{"E"} for English (the package default, settable
+with \code{options(estatr.lang = )}) or \code{"J"} for Japanese. Tables that have no
+English release fall back to Japanese automatically, with a warning.}
     \item{\code{key}}{e-Stat appId. Defaults to the stored key.}
   }}
 }

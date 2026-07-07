@@ -13,6 +13,7 @@ estat_stats_list(
   limit = NULL,
   startPosition = NULL,
   ...,
+  lang = getOption("estatr.lang", "E"),
   key = get_estat_key()
 )
 }
@@ -36,6 +37,10 @@ statistics / sub-datasets).}
 
 \item{...}{Further query parameters passed through to \code{getStatsList}
 verbatim (e.g. \code{updatedDate}, \code{openYears}).}
+
+\item{lang}{Label language: \code{"E"} for English (the package default, settable
+with \code{options(estatr.lang = )}) or \code{"J"} for Japanese. Tables that have no
+English release fall back to Japanese automatically, with a warning.}
 
 \item{key}{e-Stat appId. Defaults to the stored key.}
 }

@@ -7,6 +7,20 @@
 # Drop NULL elements from a list (leaves length-0 vectors alone).
 compact <- function(x) x[!vapply(x, is.null, logical(1))]
 
+# Normalise and validate the e-Stat language code. "E" (English) is the package
+# default; "J" returns Japanese. English falls back to Japanese text for the
+# occasional item that has no official translation, so it never returns blanks.
+estat_lang <- function(lang = getOption("estatr.lang", "E")) {
+  lang <- toupper(as.character(lang))
+  if (length(lang) != 1 || !lang %in% c("E", "J")) {
+    cli::cli_abort(
+      '{.arg lang} must be "E" (English) or "J" (Japanese).',
+      class = "estat_error_invalid_arg"
+    )
+  }
+  lang
+}
+
 # Redact the appId out of a string (URL, message, echoed parameter block) so it
 # can never leak through an error condition, verbose log, or fixture.
 redact_appid <- function(x) {
