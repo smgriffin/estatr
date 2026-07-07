@@ -6,7 +6,7 @@
 \alias{estatr-package}
 \title{estatr: Tidy Access to Japanese Government Statistics (e-Stat API)}
 \description{
-A tidy, tidycensus-style interface to the Japanese government-wide statistics catalog served by the e-Stat API (\url{https://api.e-stat.go.jp}). Wraps table search, classification metadata, and data retrieval, decoding e-Stat's numeric codes into human-readable labels and returning tibbles that pipe into the tidyverse. Internals use 'data.table' for speed on large tables; output is a plain tibble at the return boundary.
+A tidy, tidycensus-style interface to the Japanese government-wide statistics catalog served by the e-Stat API (\url{https://www.e-stat.go.jp/api/}). Wraps table search, classification metadata, and data retrieval, decoding e-Stat's numeric codes into human-readable labels and returning tibbles that pipe into the tidyverse. Internals use 'data.table' for speed on large tables; output is a plain tibble at the return boundary.
 }
 \seealso{
 Useful links:
