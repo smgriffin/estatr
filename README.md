@@ -4,9 +4,12 @@
 
 <!-- badges: start -->
 [![R-CMD-check](https://github.com/smgriffin/estatr/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/smgriffin/estatr/actions/workflows/R-CMD-check.yaml)
+[![pkgdown](https://github.com/smgriffin/estatr/actions/workflows/pkgdown.yaml/badge.svg)](https://github.com/smgriffin/estatr/actions/workflows/pkgdown.yaml)
 [![Codecov test coverage](https://codecov.io/gh/smgriffin/estatr/graph/badge.svg)](https://app.codecov.io/gh/smgriffin/estatr)
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 <!-- badges: end -->
+
+📖 **Documentation:** <https://smgriffin.github.io/estatr/>
 
 `estatr` is a tidy, [tidycensus](https://walker-data.com/tidycensus/)-style R
 interface to the Japanese government-wide statistics catalog served by the
