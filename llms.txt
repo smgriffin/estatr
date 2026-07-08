@@ -1,5 +1,7 @@
 # estatr
 
+📖 **Documentation:** <https://smgriffin.github.io/estatr/>
+
 `estatr` is a tidy,
 [tidycensus](https://walker-data.com/tidycensus/)-style R interface to
 the Japanese government-wide statistics catalog served by the **e-Stat
