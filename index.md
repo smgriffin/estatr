@@ -1,0 +1,94 @@
+# estatr
+
+`estatr` is a tidy,
+[tidycensus](https://walker-data.com/tidycensus/)-style R interface to
+the Japanese government-wide statistics catalog served by the **e-Stat
+API** (`api.e-stat.go.jp`) — Population Census, Labour Force Survey,
+Economic Census, and the rest of the official catalog.
+
+It wraps table search, classification metadata, and data retrieval;
+decodes e-Stat’s numeric codes into human-readable labels; and returns
+tibbles that pipe straight into the tidyverse. Internally it uses
+`data.table` for speed on large tables, converting to a plain tibble
+only at the return boundary.
+
+> **Status:** development version, feature-complete for a first release.
+> Search, metadata, data retrieval with automatic parallel pagination,
+> label decoding, caching, resumable pulls, and choropleth-ready
+> boundary geometry (`geometry = TRUE`, via the suggested `sf` package)
+> are all in place.
+
+## Installation
+
+``` r
+
+# install.packages("pak")
+pak::pak("smgriffin/estatr")
+```
+
+## Authentication
+
+The e-Stat API requires a free `appId`. Sign up at
+<https://www.e-stat.go.jp/api/> and issue an application ID, then
+register it with:
+
+``` r
+
+library(estatr)
+estat_api_key("your-app-id", install = TRUE)
+```
+
+This writes `ESTAT_API_KEY` to your `.Renviron` so it is available in
+future sessions. The key is a secret: never commit it or paste it into
+issues.
+
+## Usage
+
+By default `estatr` works in **English** — labels, category names, and
+search all come back in English (e-Stat provides the translations; the
+few tables with no English release fall back to Japanese automatically).
+Set `options(estatr.lang = "J")` or pass `lang = "J"` for Japanese.
+
+``` r
+
+library(estatr)
+
+# 1. Find a table — English keywords work for the major surveys
+tables <- search_estat("Labour Force Survey")
+
+# 2. Get tidy, labelled data in one call (data + metadata, decoded)
+d <- get_estat("0003217721", limit = 500)
+#> # A tibble: 500 × 9
+#>   area      area_code time           time_code  cat01                        cat01_code unit          value annotation
+#>   <chr>     <chr>     <chr>          <chr>      <chr>                        <chr>      <chr>         <dbl> <chr>
+#> 1 All Japan 00000     Jan.-Mar. 2018 2018000103 Population aged 15 and over  00         10 thousand   11077 NA
+#> …
+
+# 3. Or skip the id lookup with a curated shortcut
+lfs <- get_labour_force_survey(limit = 500)
+
+# 4. Map it: get an sf object with official e-Stat boundaries joined on
+library(sf)
+pop <- get_estat("0003433219", cdCat01 = "0", geometry = TRUE,
+                 geometry_level = "prefecture", geometry_year = 2020)
+```
+
+[`get_estat()`](https://smgriffin.github.io/estatr/reference/get_estat.md)
+returns one row per observation with paired label/code columns, a
+numeric `value`, and an `annotation` column preserving
+suppressed/footnoted markers. See
+[`vignette("estatr")`](https://smgriffin.github.io/estatr/articles/estatr.md)
+to get started.
+
+## Data source and credit
+
+Statistics are retrieved from the e-Stat API provided by Japan’s
+Statistics Bureau / Ministry of Internal Affairs and Communications.
+Applications that redistribute this data must display the credit line
+required by the [e-Stat Terms of Use](https://www.e-stat.go.jp/api/).
+This service uses the API function of the government statistics portal
+site (e-Stat) but its content is not guaranteed by the government.
+
+## License
+
+MIT © estatr authors

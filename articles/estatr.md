@@ -1,0 +1,130 @@
+# Getting started with estatr
+
+`estatr` is a tidy, tidycensus-style interface to the Japanese
+government-wide statistics catalog served by the **e-Stat API**. This
+vignette gets you from a fresh install to your first labelled table.
+
+## 1. Get an API key
+
+The e-Stat API requires a free application ID (`appId`). Register at
+<https://www.e-stat.go.jp/api/> and issue an ID from your mypage (up to
+three are allowed per account).
+
+Store it once with
+[`estat_api_key()`](https://smgriffin.github.io/estatr/reference/estat_api_key.md):
+
+``` r
+
+library(estatr)
+
+# Session only
+estat_api_key("your-app-id")
+
+# Or persist it to ~/.Renviron for future sessions
+estat_api_key("your-app-id", install = TRUE)
+```
+
+The key is read from the `ESTAT_API_KEY` environment variable at call
+time and is never stored in package state or printed. Treat it as a
+secret: don’t commit it or paste it into issues. If it leaks, delete and
+reissue it on your mypage.
+
+## 2. Language
+
+`estatr` works in **English by default** — table names, category labels,
+area and time labels, and search all come back in English, because
+e-Stat itself provides the translations. The handful of tables with no
+English release fall back to Japanese automatically (with a warning). To
+work in Japanese instead:
+
+``` r
+
+options(estatr.lang = "J") # for the whole session
+# ...or per call: get_estat(id, lang = "J")
+```
+
+## 3. Find a table
+
+Every e-Stat table has a `statsDataId`. Search the catalog with
+[`search_estat()`](https://smgriffin.github.io/estatr/reference/search_estat.md)
+— English keywords work for the major surveys:
+
+``` r
+
+tables <- search_estat("Labour Force Survey")
+tables[, c("id", "stat_name", "title")]
+```
+
+Search coverage is broadest in Japanese (not every table is indexed in
+English), so if a search comes up short, try Japanese terms or the
+curated shortcuts below.
+
+If you just want a common table without hunting, use a curated shortcut:
+
+``` r
+
+estat_curated_tables()
+lfs <- get_labour_force_survey(limit = 500)
+```
+
+## 4. Get labelled data
+
+[`get_estat()`](https://smgriffin.github.io/estatr/reference/get_estat.md)
+is the main entry point. Give it a `statsDataId` and it fetches the data
+*and* its metadata in one call, decodes every numeric code to a label,
+and returns a tidy tibble:
+
+``` r
+
+d <- get_estat("0003217721", limit = 500)
+d
+```
+
+You get one row per observation, with paired label/code columns for each
+classification axis (e.g. `area` + `area_code`, `time` + `time_code`),
+the `unit`, a numeric `value`, and an `annotation` column that preserves
+any non-numeric markers (suppressed cells, footnote symbols) instead of
+silently turning them into `NA`. The table’s annotation legend is
+attached as an attribute:
+
+``` r
+
+attr(d, "notes")
+```
+
+## 5. Reshape and join
+
+Pivot a classification axis into columns with
+[`pivot_estat_wide()`](https://smgriffin.github.io/estatr/reference/pivot_estat_wide.md):
+
+``` r
+
+pivot_estat_wide(d, names_from = "cat01")
+```
+
+Join English prefecture names using the bundled `prefectures` table:
+
+``` r
+
+library(dplyr)
+d |>
+  left_join(prefectures, by = "area_code")
+```
+
+## Where next
+
+- [`vignette("finding-tables")`](https://smgriffin.github.io/estatr/articles/finding-tables.md)
+  — searching and the curated shortcuts in depth.
+- [`vignette("time-series")`](https://smgriffin.github.io/estatr/articles/time-series.md)
+  — working with time series across prefectures.
+- [`vignette("data-model")`](https://smgriffin.github.io/estatr/articles/data-model.md)
+  — understanding e-Stat’s indicator / classification / area / time
+  structure.
+
+## Data source and credit
+
+Statistics are retrieved from the e-Stat API provided by Japan’s
+Statistics Bureau. Applications that redistribute this data must display
+the credit line required by the [e-Stat Terms of
+Use](https://www.e-stat.go.jp/api/). This service uses the e-Stat API
+but its content is not guaranteed by the government.

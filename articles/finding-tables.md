@@ -1,0 +1,79 @@
+# Finding the right table
+
+The single biggest friction point with e-Stat is finding the
+`statsDataId` for the table you actually want. This article covers the
+three routes `estatr` gives you: curated shortcuts, friendly search, and
+the low-level list endpoint.
+
+## Curated shortcuts
+
+For the handful of tables most people want first, there is a named
+shortcut so you never touch a `statsDataId`:
+
+``` r
+
+estat_curated_tables()
+
+get_labour_force_survey(limit = 500)
+get_family_income_survey(limit = 500)
+
+# Or by key
+get_estat_curated("regional_statistics", limit = 500)
+```
+
+Entries whose `statsDataId` is `NA` are recognised names that have not
+yet been curated to a specific table — use search (below) for those, or
+open an issue to help curate them.
+
+## Friendly search
+
+[`search_estat()`](https://smgriffin.github.io/estatr/reference/search_estat.md)
+wraps the catalog search and returns a tibble with the most useful
+columns renamed to stable snake_case (`id`, `stat_name`, `title`,
+`gov_org`, `survey_date`, …) and moved to the front:
+
+``` r
+
+# Keyword search (Japanese or English terms)
+search_estat("国勢調査")
+
+# Combine terms; restrict to recently updated tables
+search_estat("労働力調査 AND 都道府県", updated_from = "2023")
+```
+
+Once you have an `id`, inspect its structure before pulling data (see
+[`vignette("data-model")`](https://smgriffin.github.io/estatr/articles/data-model.md)):
+
+``` r
+
+meta <- estat_meta_info("0003217721")
+names(meta) # the classification axes
+meta$cat01 # the labels/codes for the first category axis
+```
+
+## Low-level listing
+
+For full control over the raw `getStatsList` parameters, use
+[`estat_stats_list()`](https://smgriffin.github.io/estatr/reference/estat_stats_list.md)
+directly:
+
+``` r
+
+estat_stats_list(
+  searchWord = "家計調査",
+  statsCode = "00200561",
+  limit = 20
+)
+```
+
+## Discovering downloadable files
+
+Some resources are published as Excel/CSV/PDF rather than as queryable
+data.
+[`estat_data_catalog()`](https://smgriffin.github.io/estatr/reference/estat_data_catalog.md)
+finds those:
+
+``` r
+
+estat_data_catalog(searchWord = "国勢調査", limit = 10)
+```

@@ -1,0 +1,88 @@
+# Working with time series across prefectures
+
+e-Stat’s strength is long, consistent time series across all 47
+prefectures. This article shows a typical workflow: pull a series,
+filter by time and area, and plot it.
+
+``` r
+
+library(estatr)
+library(dplyr)
+library(ggplot2)
+```
+
+## Filtering server-side
+
+Filter *before* the data leaves e-Stat by passing `cd*` codes to
+[`get_estat()`](https://smgriffin.github.io/estatr/reference/get_estat.md).
+This is far cheaper than pulling everything and filtering in R:
+
+``` r
+
+# One category, a time window, all areas
+d <- get_estat(
+  "0003217721",
+  cdCat03 = "1",            # e.g. a single sex category
+  cdTimeFrom = "2015000000",
+  cdTimeTo = "2023000000"
+)
+```
+
+`cdTime`, `cdArea`, and `cdCat01`..`cdCat15` all accept vectors, which
+are comma-joined into e-Stat’s code-list form for you:
+
+``` r
+
+# Just Tokyo and Osaka (whole-prefecture area codes)
+get_estat("0003217721", cdArea = c("13000", "27000"))
+```
+
+The bundled `prefectures` table has the codes:
+
+``` r
+
+prefectures |>
+  filter(name_en %in% c("Tokyo", "Osaka")) |>
+  select(name_en, area_code)
+```
+
+## Parsing the time axis
+
+e-Stat time codes are numeric (`time_code`) with a human label (`time`).
+For plotting, derive a proper date/period from whichever is convenient.
+Quarterly labour-force codes, for example, encode the year in the first
+four digits:
+
+``` r
+
+d <- d |>
+  mutate(year = as.integer(substr(time_code, 1, 4)))
+```
+
+## Plotting
+
+Because
+[`get_estat()`](https://smgriffin.github.io/estatr/reference/get_estat.md)
+returns a tidy tibble with a numeric `value`, it drops straight into
+`ggplot2`:
+
+``` r
+
+d |>
+  filter(!is.na(value)) |>
+  ggplot(aes(year, value, colour = cat01)) +
+  geom_line() +
+  labs(y = unique(d$unit), colour = NULL)
+```
+
+## Handling suppressed and annotated values
+
+Non-numeric markers (suppressed cells, footnotes) are *not* silently
+coerced to `NA` — they are preserved in the `annotation` column, with
+the legend attached as an attribute. Inspect them before dropping:
+
+``` r
+
+d |> filter(!is.na(annotation)) |> count(annotation)
+attr(d, "notes")
+```
