@@ -12,6 +12,7 @@ A tidy, tidycensus-style interface to the Japanese government-wide statistics ca
 Useful links:
 \itemize{
   \item \url{https://github.com/smgriffin/estatr}
+  \item \url{https://smgriffin.github.io/estatr/}
   \item Report bugs at \url{https://github.com/smgriffin/estatr/issues}
 }
 

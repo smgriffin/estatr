@@ -5,7 +5,7 @@
 ^\.github$
 ^\.Renviron$
 ^\.Renviron\..*$
-^ROADMAP\.md$
+^dev$
 ^\.gitignore$
 ^codecov\.yml$
 ^_pkgdown\.yml$
