@@ -349,8 +349,11 @@ The shortcut is `geometry = TRUE` on `get_estat()`:
 ``` r
 library(sf)
 
-pop <- get_estat("0003433219", cdCat01 = "0", geometry = TRUE,
+pop <- get_estat("0003433219", cdCat01 = "0", lvArea = "2", geometry = TRUE,
                  geometry_level = "prefecture", geometry_year = 2020)
+
+nrow(pop)
+#> [1] 47
 
 plot(pop["value"])
 ```
@@ -358,9 +361,31 @@ plot(pop["value"])
 Or join geometry onto data you already have:
 
 ``` r
-d   <- get_population_census(cdCat01 = "0")
+d   <- get_population_census(cdCat01 = "0", lvArea = "2")
 map <- estat_join_geometry(d, level = "prefecture", year = 2020)
 ```
+
+### Ask for one geographic level
+
+That `lvArea = "2"` matters. Most e-Stat tables stack every geography in one
+table — national total, prefectures, municipalities, wards. `0003433219` holds
+**1,965 areas**. Fetch all of them and join at `level = "prefecture"` and only
+47 get a polygon; the rest come back with empty geometry and a warning.
+
+e-Stat's `lv<axis>` parameters filter by level server-side, and pass straight
+through `...`:
+
+``` r
+nrow(get_estat("0003433219", cdCat01 = "0"))              # every level
+#> [1] 1965
+nrow(get_estat("0003433219", cdCat01 = "0", lvArea = "2"))  # prefectures only
+#> [1] 47
+```
+
+For this table the levels are `1` national, `2` prefecture, `4` city, `5` ward,
+`6` town/village. They vary by table, so check the `level` and `parent` columns
+of `estat_meta_info(id)$area` rather than assuming. The same works for other
+axes (`lvCat01`, `lvTime`, …).
 
 With `ggplot2`:
 
