@@ -4,11 +4,13 @@
 #'
 #' Low-level wrapper around the e-Stat `getStatsList` endpoint. Searches the
 #' government-wide statistics catalog and returns a tibble of matching tables,
-#' one row per table, including the `id` (the `statsDataId` you will pass to
-#' `estat_stats_data()` once that wrapper is implemented).
+#' one row per table, including the `id` — the `statsDataId` you pass to
+#' [get_estat()] or [estat_stats_data()].
 #'
-#' This is a power-user function that mirrors the API closely. Higher-level,
-#' friendlier search (`search_estat()`) is planned for a later milestone.
+#' This is a power-user function that mirrors the API closely: columns come back
+#' with e-Stat's own names (`STAT_NAME`, `STATISTICS_NAME`, `CYCLE`, ...). For
+#' interactive browsing, [search_estat()] wraps this and renames the most useful
+#' columns to stable snake_case.
 #'
 #' @param searchWord Keyword(s) to search. Japanese is supported and encoded as
 #'   UTF-8. Combine terms with `AND`/`OR` per the e-Stat API.

@@ -73,3 +73,11 @@ e-Stat API, covering roadmap milestones M0–M6.
   polygons and a unioned parent-city polygon (e.g. `01101`… and `01100` 札幌市),
   so data coded at either level joins without holes; `"ward"` and `"city"` select
   one or the other.
+* The national total (`area_code` `"00000"`), which e-Stat includes in nearly
+  every table, no longer aborts the geometry layer. It maps to prefecture `"00"`,
+  which does not exist; `estat_boundaries()` now skips it instead of erroring
+  with `Not valid prefecture codes: "00"`, and `estat_join_geometry()` keeps the
+  row with an empty geometry (reported with a note, not a mismatch warning) so
+  row counts still line up with the input. Previously any join on an unfiltered
+  `get_estat()` result — including the documented `estat_join_geometry()`
+  example — failed outright.

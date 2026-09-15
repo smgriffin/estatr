@@ -24,6 +24,9 @@ so data coded at either ward or parent-city level joins.}
 }
 \value{
 An \link[sf:sf]{sf} object: the input columns plus a \code{geometry} column.
+Rows whose area has no polygon — notably e-Stat's national total
+(\code{"00000"}), which is present in most tables — are kept with an empty
+geometry rather than dropped, so row counts still line up with the input.
 }
 \description{
 Joins e-Stat boundary polygons onto a tidy \code{\link[=get_estat]{get_estat()}} result by

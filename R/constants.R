@@ -24,3 +24,9 @@ estat_max_records_per_call <- 100000L
 # Query parameter that carries the appId. Centralised so the response handler
 # and the httptest2 redactor scrub exactly the same name.
 estat_appid_param <- "appId"
+
+# e-Stat's area code for the national total (全国 / "All Japan") and the
+# prefecture prefix it implies. It is a real row in nearly every table but has no
+# boundary polygon, so the geometry layer skips it instead of erroring.
+estat_national_area_code <- "00000"
+estat_national_pref_code <- "00"

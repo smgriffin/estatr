@@ -58,6 +58,8 @@ validate_boundary_year_datum <- function(year, datum) {
 #'   download: 2-digit prefecture codes (e.g. `"31"`) or any codes whose first
 #'   two digits are a prefecture (e.g. a 5-digit `"31201"` or the `area_code`
 #'   column from [get_estat()]). `NULL` downloads all 47 prefectures (large).
+#'   e-Stat's national total (`"00000"`) has no boundary polygon and is skipped,
+#'   so an `area_code` column can be passed straight through.
 #' @param level Geographic level to return: `"municipality"` (default; 5-digit
 #'   `PREF+CITY`) or `"prefecture"` (dissolved whole prefectures, `PREF+"000"`)
 #'   or `"small_area"` (raw 町丁・字, 9-digit `KEY_CODE`).
@@ -113,12 +115,27 @@ estat_boundaries <- function(areas = NULL,
 }
 
 # Which 2-digit prefecture files do we need to cover the requested areas?
+#
+# e-Stat tables almost always include the national total row (area code "00000",
+# 全国), which maps to prefecture "00" -- a prefecture that does not exist. It is
+# valid data, not a user mistake, so it is dropped here rather than aborting;
+# estat_join_geometry() then reports it through the usual "no geometry" warning.
 resolve_prefectures <- function(areas) {
   if (is.null(areas)) return(sprintf("%02d", 1:47))
   prefs <- unique(substr(as.character(areas), 1, 2))
+  prefs <- prefs[prefs != estat_national_pref_code]
   bad <- prefs[!grepl("^(0[1-9]|[1-4][0-9])$", prefs)]
   if (length(bad) > 0) {
     cli::cli_abort("Not valid prefecture codes: {.val {bad}}.", class = "estat_error_invalid_arg")
+  }
+  if (length(prefs) == 0) {
+    cli::cli_abort(
+      c(
+        "No prefecture-level geometry to download.",
+        "i" = "{.arg areas} held only the national total ({.val 00000}), which has no boundary polygon."
+      ),
+      class = "estat_error_invalid_arg"
+    )
   }
   prefs
 }
@@ -287,6 +304,9 @@ rollup_designated_cities <- function(muni, mode = "both") {
 #'   `year` to your data's census year. `designated_cities` defaults to `"both"`
 #'   so data coded at either ward or parent-city level joins.
 #' @return An [sf][sf::st_sf] object: the input columns plus a `geometry` column.
+#'   Rows whose area has no polygon — notably e-Stat's national total
+#'   (`"00000"`), which is present in most tables — are kept with an empty
+#'   geometry rather than dropped, so row counts still line up with the input.
 #' @export
 #' @examples
 #' \dontrun{
@@ -324,11 +344,20 @@ estat_join_geometry <- function(data, level = c("auto", "municipality", "prefect
   # Warn loudly about codes that got no geometry rather than silently returning
   # empty polygons -- the usual cause is a boundary year/level that doesn't match
   # the data (e.g. designated-city ward vs parent-city codes, or a merger year).
+  # The national total is expected to be unmatched, so it gets its own hint
+  # instead of sending people off to check year/level for nothing.
   unmatched <- setdiff(codes, bnd$area_code)
-  if (length(unmatched) > 0) {
+  national <- estat_national_area_code %in% unmatched
+  others <- setdiff(unmatched, estat_national_area_code)
+  if (length(others) > 0) {
     cli::cli_warn(c(
-      "{length(unmatched)} area code{?s} had no {level} geometry for year {year}.",
-      "i" = "First few: {.val {utils::head(unmatched, 5)}}. Check that {.arg year}/{.arg level} match your data (municipality codes change between censuses; designated-city wards use ward codes)."
+      "{length(others)} area code{?s} had no {level} geometry for year {year}.",
+      "i" = "First few: {.val {utils::head(others, 5)}}. Check that {.arg year}/{.arg level} match your data (municipality codes change between censuses; designated-city wards use ward codes)."
+    ))
+  }
+  if (national) {
+    cli::cli_inform(c(
+      "i" = "The national total row ({.val {estat_national_area_code}}) has no boundary polygon; its geometry is empty."
     ))
   }
 

@@ -51,12 +51,14 @@ zero-row tibble when the search matches nothing.
 \description{
 Low-level wrapper around the e-Stat \code{getStatsList} endpoint. Searches the
 government-wide statistics catalog and returns a tibble of matching tables,
-one row per table, including the \code{id} (the \code{statsDataId} you will pass to
-\code{estat_stats_data()} once that wrapper is implemented).
+one row per table, including the \code{id} — the \code{statsDataId} you pass to
+\code{\link[=get_estat]{get_estat()}} or \code{\link[=estat_stats_data]{estat_stats_data()}}.
 }
 \details{
-This is a power-user function that mirrors the API closely. Higher-level,
-friendlier search (\code{search_estat()}) is planned for a later milestone.
+This is a power-user function that mirrors the API closely: columns come back
+with e-Stat's own names (\code{STAT_NAME}, \code{STATISTICS_NAME}, \code{CYCLE}, ...). For
+interactive browsing, \code{\link[=search_estat]{search_estat()}} wraps this and renames the most useful
+columns to stable snake_case.
 }
 \examples{
 \dontrun{

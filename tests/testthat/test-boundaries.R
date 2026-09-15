@@ -22,6 +22,17 @@ test_that("resolve_prefectures extracts 2-digit codes and rejects bad ones", {
   expect_error(resolve_prefectures("99"), class = "estat_error_invalid_arg")
 })
 
+test_that("resolve_prefectures skips the national total instead of erroring", {
+  # e-Stat returns the national total ("00000") in nearly every table; it maps to
+  # prefecture "00", which does not exist. It must not abort the whole download.
+  expect_equal(resolve_prefectures(c("00000", "31201")), "31")
+  expect_equal(resolve_prefectures(c("00000", "01000", "13000")), c("01", "13"))
+  # ...but a request for nothing *but* the national total has no geometry at all.
+  expect_error(resolve_prefectures("00000"), class = "estat_error_invalid_arg")
+  # Genuinely invalid codes are still rejected.
+  expect_error(resolve_prefectures(c("00000", "99")), class = "estat_error_invalid_arg")
+})
+
 test_that("validate_boundary_year_datum enforces available years/datums", {
   expect_silent(validate_boundary_year_datum(2020, "2000"))
   expect_silent(validate_boundary_year_datum(2020, "2011"))
@@ -104,6 +115,22 @@ test_that("estat_join_geometry warns about area codes with no geometry", {
   )
   d <- tibble::tibble(area_code = c("99201", "99999"), value = c(1, 2))
   expect_warning(estat_join_geometry(d, level = "municipality"), "no municipality geometry")
+})
+
+test_that("estat_join_geometry keeps the national total row without warning", {
+  skip_if_not_installed("sf")
+  fake_muni <- dissolve_boundary(make_fake_small_area(), "municipality") # 99201, 99202
+  testthat::local_mocked_bindings(
+    estat_boundaries = function(areas, level, year, datum, ...) fake_muni
+  )
+  d <- tibble::tibble(area_code = c("00000", "99201"), value = c(1, 2))
+  # The national total is expected to lack geometry: it must not be reported as a
+  # year/level mismatch, and it must not drop the row.
+  expect_no_warning(suppressMessages(out <- estat_join_geometry(d, level = "municipality")))
+  expect_s3_class(out, "sf")
+  expect_equal(nrow(out), 2L)
+  expect_true(sf::st_is_empty(out[out$area_code == "00000", ]))
+  expect_false(sf::st_is_empty(out[out$area_code == "99201", ]))
 })
 
 test_that(".estatr_designated lookup is well-formed", {
