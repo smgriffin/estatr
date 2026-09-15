@@ -28,7 +28,7 @@ test_that("resolve_prefectures skips the national total instead of erroring", {
   expect_equal(resolve_prefectures(c("00000", "31201")), "31")
   expect_equal(resolve_prefectures(c("00000", "01000", "13000")), c("01", "13"))
   # ...but a request for nothing *but* the national total has no geometry at all.
-  expect_error(resolve_prefectures("00000"), class = "estat_error_invalid_arg")
+  expect_error(resolve_prefectures("00000"), class = "estat_error_no_geometry")
   # Genuinely invalid codes are still rejected.
   expect_error(resolve_prefectures(c("00000", "99")), class = "estat_error_invalid_arg")
 })
@@ -115,6 +115,21 @@ test_that("estat_join_geometry warns about area codes with no geometry", {
   )
   d <- tibble::tibble(area_code = c("99201", "99999"), value = c(1, 2))
   expect_warning(estat_join_geometry(d, level = "municipality"), "no municipality geometry")
+})
+
+test_that("estat_join_geometry handles data that is only the national total", {
+  skip_if_not_installed("sf")
+  # Nothing here has a polygon, so there is no boundary file to fetch. The join
+  # must still return every row with empty geometry: erroring on one row while
+  # succeeding on that same row plus a second one would be a trap for pipelines.
+  d <- tibble::tibble(area_code = "00000", value = 1)
+  expect_no_error(
+    out <- suppressMessages(estat_join_geometry(d, level = "prefecture"))
+  )
+  expect_s3_class(out, "sf")
+  expect_equal(nrow(out), 1L)
+  expect_true(sf::st_is_empty(out))
+  expect_equal(out$value, 1)
 })
 
 test_that("estat_join_geometry keeps the national total row without warning", {

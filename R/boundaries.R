@@ -118,8 +118,13 @@ estat_boundaries <- function(areas = NULL,
 #
 # e-Stat tables almost always include the national total row (area code "00000",
 # 全国), which maps to prefecture "00" -- a prefecture that does not exist. It is
-# valid data, not a user mistake, so it is dropped here rather than aborting;
-# estat_join_geometry() then reports it through the usual "no geometry" warning.
+# valid data, not a user mistake, so it is dropped here rather than aborting.
+# estat_join_geometry() surfaces it separately as an informational message (the
+# unmatched-codes *warning* is reserved for genuine year/level mismatches).
+#
+# A request for nothing but the national total has no file to download at all,
+# which is an error for a direct estat_boundaries() call but not for a join --
+# hence its own condition class, which estat_join_geometry() handles.
 resolve_prefectures <- function(areas) {
   if (is.null(areas)) return(sprintf("%02d", 1:47))
   prefs <- unique(substr(as.character(areas), 1, 2))
@@ -132,9 +137,9 @@ resolve_prefectures <- function(areas) {
     cli::cli_abort(
       c(
         "No prefecture-level geometry to download.",
-        "i" = "{.arg areas} held only the national total ({.val 00000}), which has no boundary polygon."
+        "i" = "{.arg areas} held only the national total ({.val {estat_national_area_code}}), which has no boundary polygon."
       ),
-      class = "estat_error_invalid_arg"
+      class = "estat_error_no_geometry"
     )
   }
   prefs
@@ -224,6 +229,16 @@ download_boundary <- function(url, dest) {
     )
   }
   invisible(dest)
+}
+
+# A zero-row boundary sf with the right columns and CRS, used when a join has no
+# geometry to fetch at all. Merging against it yields the input rows with empty
+# geometry, which is what estat_join_geometry() documents.
+empty_boundaries <- function(datum) {
+  sf::st_sf(
+    area_code = character(0),
+    geometry = sf::st_sfc(crs = boundary_epsg(datum))
+  )
 }
 
 # Dissolve small-area polygons up to the requested administrative level and
@@ -336,9 +351,16 @@ estat_join_geometry <- function(data, level = c("auto", "municipality", "prefect
     level <- if (length(codes) > 0 && all(grepl("000$", codes))) "prefecture" else "municipality"
   }
 
-  bnd <- estat_boundaries(
-    areas = codes, level = level, year = year, datum = datum,
-    designated_cities = designated_cities
+  # When nothing in the data has a polygon at all -- e.g. a result filtered down
+  # to the national total alone -- there is no file to download. Returning every
+  # row with empty geometry keeps the join total rather than making the function
+  # error on one input and succeed on the same input plus one more row.
+  bnd <- tryCatch(
+    estat_boundaries(
+      areas = codes, level = level, year = year, datum = datum,
+      designated_cities = designated_cities
+    ),
+    estat_error_no_geometry = function(cnd) empty_boundaries(datum)
   )
 
   # Warn loudly about codes that got no geometry rather than silently returning
