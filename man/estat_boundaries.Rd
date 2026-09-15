@@ -17,7 +17,9 @@ estat_boundaries(
 \item{areas}{Character vector of area codes selecting which prefectures to
 download: 2-digit prefecture codes (e.g. \code{"31"}) or any codes whose first
 two digits are a prefecture (e.g. a 5-digit \code{"31201"} or the \code{area_code}
-column from \code{\link[=get_estat]{get_estat()}}). \code{NULL} downloads all 47 prefectures (large).}
+column from \code{\link[=get_estat]{get_estat()}}). \code{NULL} downloads all 47 prefectures (large).
+e-Stat's national total (\code{"00000"}) has no boundary polygon and is skipped,
+so an \code{area_code} column can be passed straight through.}
 
 \item{level}{Geographic level to return: \code{"municipality"} (default; 5-digit
 \code{PREF+CITY}) or \code{"prefecture"} (dissolved whole prefectures, \code{PREF+"000"})
