@@ -1,3 +1,7 @@
+# Stash the user's real appId (if any) before the dummy key masks it, so the
+# opt-in live tests in test-live-api.R can restore it. Never printed or written.
+estatr_real_key <- Sys.getenv("ESTAT_API_KEY", unset = "")
+
 # A dummy key so request-building tests don't hit the "no key" guard. Never a
 # real appId. withr resets it after the test run.
 withr::local_envvar(ESTAT_API_KEY = "test-app-id", .local_envir = teardown_env())
