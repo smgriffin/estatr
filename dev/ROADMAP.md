@@ -4,7 +4,7 @@ A tidycensus-style R package wrapping the main **e-Stat API** (`api.e-stat.go.jp
 
 Package name: **`estatr`** (confirmed available on CRAN and GitHub).
 
-## What Claude Code needs to know about the API first
+## What to know about the API first
 
 - Base URL: `https://api.e-stat.go.jp/rest/<version>/app/...` (current version 3.0). Formats: XML (default), JSON (`/app/json/...`), JSONP.
 - Auth: free `appId`, obtained by signing up and pressing "Issue" on the e-Stat mypage. **Max 3 appIds per account.** No documented rate limit currently, but must display required credit text in any published app (see e-Stat Terms of Use).
@@ -119,7 +119,7 @@ These apply across milestones (referenced inline below where they change scope),
 - No support for the Statistics Dashboard API (different base URL/spec entirely — could be a second backend later if there's demand for its simpler no-auth indicators).
 - No write/dataset-registration endpoints (`postDataset` etc.) — read-only package.
 
-## Suggested first prompt to hand Claude Code
+## Suggested first prompt
 
 Start at M0–M1 only, in one session: scaffold the package, set up `httr2`-based request/response handling with the `RESULT`-block error parsing described above, implement `estat_api_key()`, and get one working low-level call (`estat_stats_list()`) returning a tibble against a live table search — proves the auth + HTTP layer end-to-end before building the rest on top of it.
 
