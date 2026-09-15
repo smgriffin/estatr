@@ -29,7 +29,9 @@ estat_boundaries(
   first two digits are a prefecture (e.g. a 5-digit `"31201"` or the
   `area_code` column from
   [`get_estat()`](https://smgriffin.github.io/estatr/reference/get_estat.md)).
-  `NULL` downloads all 47 prefectures (large).
+  `NULL` downloads all 47 prefectures (large). e-Stat's national total
+  (`"00000"`) has no boundary polygon and is skipped, so an `area_code`
+  column can be passed straight through.
 
 - level:
 

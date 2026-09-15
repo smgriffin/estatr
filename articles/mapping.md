@@ -19,6 +19,7 @@ library(ggplot2)
 pop <- get_estat(
   "0003433219",             # 2020 Population Census, population by sex
   cdCat01 = "0",            # total (both sexes)
+  lvArea = "2",             # prefecture level only (see below)
   geometry = TRUE,
   geometry_level = "prefecture",
   geometry_year = 2020
@@ -37,7 +38,7 @@ If you already pulled data, join geometry separately with
 
 ``` r
 
-d <- get_estat("0003433219", cdCat01 = "0")
+d <- get_estat("0003433219", cdCat01 = "0", lvArea = "2")
 sf_d <- estat_join_geometry(d, level = "prefecture", year = 2020)
 ```
 
@@ -54,6 +55,41 @@ sf_d <- estat_join_geometry(d, level = "prefecture", year = 2020)
 Boundaries are downloaded per prefecture and cached (see
 \[estat_cache_dir()\]), so a municipality map of one prefecture only
 fetches that prefecture’s file.
+
+## Ask for one geographic level
+
+Most e-Stat tables stack every geography in the same table: the national
+total, then prefectures, then municipalities, then wards. `0003433219`
+holds 1,965 areas. If you fetch all of them and join at
+`level = "prefecture"`, only the 47 prefectures get a polygon and
+everything else comes back with empty geometry — plus a warning telling
+you so.
+
+Filter to the level you want with e-Stat’s `lv<axis>` parameters, which
+pass straight through `...`:
+
+``` r
+
+d <- get_estat("0003433219", cdCat01 = "0", lvArea = "2")
+nrow(d)
+#> [1] 47
+```
+
+`lvArea = "2"` is prefecture level. For this table the levels are `1`
+national, `2` prefecture, `4` city, `5` ward, `6` town/village — but
+they vary by table, so check the metadata rather than assuming:
+
+``` r
+
+estat_meta_info("0003433219")$area   # `level` and `parent` columns
+```
+
+The same works for other axes (`lvCat01`, `lvTime`, …). Doing this
+server-side keeps the download small and the join exact.
+
+Note that `lvArea = "2"` excludes the national total (`00000`), which
+has no boundary polygon. If your data does include it, the row is kept
+with an empty geometry rather than dropped, so row counts still line up.
 
 ## Matching the boundary year to your data
 

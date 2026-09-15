@@ -2,10 +2,11 @@
 
 Low-level wrapper around the e-Stat `getStatsList` endpoint. Searches
 the government-wide statistics catalog and returns a tibble of matching
-tables, one row per table, including the `id` (the `statsDataId` you
-will pass to
-[`estat_stats_data()`](https://smgriffin.github.io/estatr/reference/estat_stats_data.md)
-once that wrapper is implemented).
+tables, one row per table, including the `id` — the `statsDataId` you
+pass to
+[`get_estat()`](https://smgriffin.github.io/estatr/reference/get_estat.md)
+or
+[`estat_stats_data()`](https://smgriffin.github.io/estatr/reference/estat_stats_data.md).
 
 ## Usage
 
@@ -79,10 +80,11 @@ matches nothing.
 
 ## Details
 
-This is a power-user function that mirrors the API closely.
-Higher-level, friendlier search
-([`search_estat()`](https://smgriffin.github.io/estatr/reference/search_estat.md))
-is planned for a later milestone.
+This is a power-user function that mirrors the API closely: columns come
+back with e-Stat's own names (`STAT_NAME`, `STATISTICS_NAME`, `CYCLE`,
+...). For interactive browsing,
+[`search_estat()`](https://smgriffin.github.io/estatr/reference/search_estat.md)
+wraps this and renames the most useful columns to stable snake_case.
 
 ## Examples
 

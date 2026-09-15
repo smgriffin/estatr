@@ -85,6 +85,7 @@
 <li>
 <code><a href="../reference/estat_boundaries.html">estat_boundaries()</a></code> downloads and dissolves e-Stat census boundaries to the prefecture, municipality, or small-area (町丁・字) level; <code><a href="../reference/estat_join_geometry.html">estat_join_geometry()</a></code> attaches them to an existing <code><a href="../reference/get_estat.html">get_estat()</a></code> result. Boundaries are cached, read with the correct Shift-JIS encoding and JGD2000/2011 CRS, and repaired with <code><a href="https://r-spatial.github.io/sf/reference/valid.html" class="external-link">st_make_valid()</a></code>. Requires the suggested  package. Match the boundary <code>year</code> to your data’s census year, since municipality codes change between censuses.</li>
 <li>Designated cities (政令指定都市) and Tokyo’s special wards: e-Stat’s shapefiles carry only ward codes, but its statistics report at both ward and parent-city level. <code>designated_cities = "both"</code> (the default) returns both the ward polygons and a unioned parent-city polygon (e.g. <code>01101</code>… and <code>01100</code> 札幌市), so data coded at either level joins without holes; <code>"ward"</code> and <code>"city"</code> select one or the other.</li>
+<li>The national total (<code>area_code</code> <code>"00000"</code>), which e-Stat includes in nearly every table, no longer aborts the geometry layer. It maps to prefecture <code>"00"</code>, which does not exist; <code><a href="../reference/estat_boundaries.html">estat_boundaries()</a></code> now skips it instead of erroring with <code>Not valid prefecture codes: "00"</code>, and <code><a href="../reference/estat_join_geometry.html">estat_join_geometry()</a></code> keeps the row with an empty geometry (reported with a note, not a mismatch warning) so row counts still line up with the input. Previously any join on an unfiltered <code><a href="../reference/get_estat.html">get_estat()</a></code> result — including the documented <code><a href="../reference/estat_join_geometry.html">estat_join_geometry()</a></code> example — failed outright.</li>
 </ul></div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
@@ -96,7 +97,7 @@
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer></div>

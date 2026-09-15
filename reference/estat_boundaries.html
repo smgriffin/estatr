@@ -77,7 +77,9 @@ small-area (町丁・字) shapefiles and dissolved to the requested <code>level<
 <dd><p>Character vector of area codes selecting which prefectures to
 download: 2-digit prefecture codes (e.g. <code>"31"</code>) or any codes whose first
 two digits are a prefecture (e.g. a 5-digit <code>"31201"</code> or the <code>area_code</code>
-column from <code><a href="get_estat.html">get_estat()</a></code>). <code>NULL</code> downloads all 47 prefectures (large).</p></dd>
+column from <code><a href="get_estat.html">get_estat()</a></code>). <code>NULL</code> downloads all 47 prefectures (large).
+e-Stat's national total (<code>"00000"</code>) has no boundary polygon and is skipped,
+so an <code>area_code</code> column can be passed straight through.</p></dd>
 
 
 <dt id="arg-level">level<a class="anchor" aria-label="anchor" href="#arg-level"></a></dt>
@@ -138,7 +140,7 @@ the parent city only. Ignored for other levels.</p></dd>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer></div>

@@ -1,5 +1,5 @@
 pandoc: 3.8.3
-pkgdown: 2.2.0
+pkgdown: 2.2.1
 pkgdown_sha: ~
 articles:
   data-model: data-model.html
@@ -7,7 +7,7 @@ articles:
   finding-tables: finding-tables.html
   mapping: mapping.html
   time-series: time-series.html
-last_built: 2026-07-08T00:20Z
+last_built: 2026-09-15T16:43Z
 urls:
   reference: https://smgriffin.github.io/estatr/reference
   article: https://smgriffin.github.io/estatr/articles

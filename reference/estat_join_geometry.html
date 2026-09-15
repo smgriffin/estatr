@@ -86,7 +86,10 @@ so data coded at either ward or parent-city level joins.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>An <a href="https://r-spatial.github.io/sf/reference/sf.html" class="external-link">sf</a> object: the input columns plus a <code>geometry</code> column.</p>
+    <p>An <a href="https://r-spatial.github.io/sf/reference/sf.html" class="external-link">sf</a> object: the input columns plus a <code>geometry</code> column.
+Rows whose area has no polygon — notably e-Stat's national total
+(<code>"00000"</code>), which is present in most tables — are kept with an empty
+geometry rather than dropped, so row counts still line up with the input.</p>
     </div>
 
     <div class="section level2">
@@ -106,7 +109,7 @@ so data coded at either ward or parent-city level joins.</p></dd>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer></div>

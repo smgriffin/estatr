@@ -42,7 +42,10 @@ estat_join_geometry(
 ## Value
 
 An [sf](https://r-spatial.github.io/sf/reference/sf.html) object: the
-input columns plus a `geometry` column.
+input columns plus a `geometry` column. Rows whose area has no polygon —
+notably e-Stat's national total (`"00000"`), which is present in most
+tables — are kept with an empty geometry rather than dropped, so row
+counts still line up with the input.
 
 ## Examples
 

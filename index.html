@@ -65,50 +65,536 @@
 <p><code>estatr</code> is a tidy, <a href="https://walker-data.com/tidycensus/" class="external-link">tidycensus</a>-style R interface to the Japanese government-wide statistics catalog served by the <strong>e-Stat API</strong> (<code>api.e-stat.go.jp</code>) — Population Census, Labour Force Survey, Economic Census, and the rest of the official catalog.</p>
 <p>It wraps table search, classification metadata, and data retrieval; decodes e-Stat’s numeric codes into human-readable labels; and returns tibbles that pipe straight into the tidyverse. Internally it uses <code>data.table</code> for speed on large tables, converting to a plain tibble only at the return boundary.</p>
 <blockquote>
-<p><strong>Status:</strong> development version, feature-complete for a first release. Search, metadata, data retrieval with automatic parallel pagination, label decoding, caching, resumable pulls, and choropleth-ready boundary geometry (<code>geometry = TRUE</code>, via the suggested <code>sf</code> package) are all in place.</p>
+<p><strong>Status:</strong> development version, feature-complete for a first release. Search, metadata, data retrieval with automatic parallel pagination, label decoding, caching, resumable pulls, and choropleth-ready boundary geometry are all in place.</p>
 </blockquote>
+<div class="section level2">
+<h2 id="contents">Contents<a class="anchor" aria-label="anchor" href="#contents"></a>
+</h2>
+<ul>
+<li><a href="#installation">Installation</a></li>
+<li><a href="#authentication">Authentication</a></li>
+<li><a href="#quick-start">Quick start</a></li>
+<li><a href="#finding-a-table">Finding a table</a></li>
+<li><a href="#getting-data">Getting data</a></li>
+<li><a href="#understanding-the-output">Understanding the output</a></li>
+<li><a href="#curated-shortcuts">Curated shortcuts</a></li>
+<li><a href="#inspecting-a-tables-metadata">Inspecting a table’s metadata</a></li>
+<li><a href="#filtering">Filtering</a></li>
+<li><a href="#reshaping-to-wide-form">Reshaping to wide form</a></li>
+<li><a href="#language-english-and-japanese">Language: English and Japanese</a></li>
+<li><a href="#maps-and-boundary-geometry">Maps and boundary geometry</a></li>
+<li><a href="#large-pulls-pagination-and-resuming">Large pulls, pagination and resuming</a></li>
+<li><a href="#performance-fast-paths">Performance fast paths</a></li>
+<li><a href="#caching">Caching</a></li>
+<li><a href="#low-level-api-wrappers">Low-level API wrappers</a></li>
+<li><a href="#function-reference">Function reference</a></li>
+</ul>
+</div>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># install.packages("pak")</span></span>
 <span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"smgriffin/estatr"</span><span class="op">)</span></span></code></pre></div>
+<p>For maps you also need the suggested <code>sf</code> package:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"sf"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="authentication">Authentication<a class="anchor" aria-label="anchor" href="#authentication"></a>
 </h2>
-<p>The e-Stat API requires a free <code>appId</code>. Sign up at <a href="https://www.e-stat.go.jp/api/" class="external-link uri">https://www.e-stat.go.jp/api/</a> and issue an application ID, then register it with:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/smgriffin/estatr" class="external-link">estatr</a></span><span class="op">)</span></span>
-<span><span class="fu"><a href="reference/estat_api_key.html">estat_api_key</a></span><span class="op">(</span><span class="st">"your-app-id"</span>, install <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
-<p>This writes <code>ESTAT_API_KEY</code> to your <code>.Renviron</code> so it is available in future sessions. The key is a secret: never commit it or paste it into issues.</p>
-</div>
-<div class="section level2">
-<h2 id="usage">Usage<a class="anchor" aria-label="anchor" href="#usage"></a>
-</h2>
-<p>By default <code>estatr</code> works in <strong>English</strong> — labels, category names, and search all come back in English (e-Stat provides the translations; the few tables with no English release fall back to Japanese automatically). Set <code>options(estatr.lang = "J")</code> or pass <code>lang = "J"</code> for Japanese.</p>
+<p>The e-Stat API requires a free <code>appId</code>. Sign up at <a href="https://www.e-stat.go.jp/api/" class="external-link uri">https://www.e-stat.go.jp/api/</a> and issue an application ID, then register it:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/smgriffin/estatr" class="external-link">estatr</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># 1. Find a table — English keywords work for the major surveys</span></span>
-<span><span class="va">tables</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/search_estat.html">search_estat</a></span><span class="op">(</span><span class="st">"Labour Force Survey"</span><span class="op">)</span></span>
+<span><span class="co"># Write the key to ~/.Renviron so future sessions pick it up automatically</span></span>
+<span><span class="fu"><a href="reference/estat_api_key.html">estat_api_key</a></span><span class="op">(</span><span class="st">"your-app-id"</span>, install <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># 2. Get tidy, labelled data in one call (data + metadata, decoded)</span></span>
+<span><span class="co"># Set it for this session only</span></span>
+<span><span class="fu"><a href="reference/estat_api_key.html">estat_api_key</a></span><span class="op">(</span><span class="st">"your-app-id"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Check whether a key is already available</span></span>
+<span><span class="fu"><a href="reference/estat_api_key_exists.html">estat_api_key_exists</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+<p><code>estatr</code> reads the key from the <code>ESTAT_API_KEY</code> environment variable, so you can also set it in <code>.Renviron</code> yourself. The key is a secret: never commit it or paste it into an issue. <code>estatr</code> redacts it from error messages and test fixtures.</p>
+</div>
+<div class="section level2">
+<h2 id="quick-start">Quick start<a class="anchor" aria-label="anchor" href="#quick-start"></a>
+</h2>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/smgriffin/estatr" class="external-link">estatr</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 1. Find a table</span></span>
+<span><span class="fu"><a href="reference/search_estat.html">search_estat</a></span><span class="op">(</span><span class="st">"Labour Force Survey"</span>, limit <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 2. Fetch it, decoded to labels</span></span>
 <span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/get_estat.html">get_estat</a></span><span class="op">(</span><span class="st">"0003217721"</span>, limit <span class="op">=</span> <span class="fl">500</span><span class="op">)</span></span>
-<span><span class="co">#&gt; # A tibble: 500 × 9</span></span>
-<span><span class="co">#&gt;   area      area_code time           time_code  cat01                        cat01_code unit          value annotation</span></span>
-<span><span class="co">#&gt;   &lt;chr&gt;     &lt;chr&gt;     &lt;chr&gt;          &lt;chr&gt;      &lt;chr&gt;                        &lt;chr&gt;      &lt;chr&gt;         &lt;dbl&gt; &lt;chr&gt;</span></span>
-<span><span class="co">#&gt; 1 All Japan 00000     Jan.-Mar. 2018 2018000103 Population aged 15 and over  00         10 thousand   11077 NA</span></span>
-<span><span class="co">#&gt; …</span></span>
 <span></span>
-<span><span class="co"># 3. Or skip the id lookup with a curated shortcut</span></span>
-<span><span class="va">lfs</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/get_labour_force_survey.html">get_labour_force_survey</a></span><span class="op">(</span>limit <span class="op">=</span> <span class="fl">500</span><span class="op">)</span></span>
+<span><span class="co"># 3. Or skip the id lookup entirely</span></span>
+<span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/get_labour_force_survey.html">get_labour_force_survey</a></span><span class="op">(</span>limit <span class="op">=</span> <span class="fl">500</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="finding-a-table">Finding a table<a class="anchor" aria-label="anchor" href="#finding-a-table"></a>
+</h2>
+<p><code><a href="reference/search_estat.html">search_estat()</a></code> is the interactive-friendly search. It renames e-Stat’s raw columns to stable snake_case and moves the useful ones to the front.</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/search_estat.html">search_estat</a></span><span class="op">(</span><span class="st">"Labour Force Survey"</span>, limit <span class="op">=</span> <span class="fl">5</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"id"</span>, <span class="st">"statistics_name"</span>, <span class="st">"title"</span>, <span class="st">"cycle"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt; # A tibble: 5 × 4</span></span>
+<span><span class="co">#&gt;   id         statistics_name                                               title           cycle</span></span>
+<span><span class="co">#&gt;   &lt;chr&gt;      &lt;chr&gt;                                                         &lt;chr&gt;           &lt;chr&gt;</span></span>
+<span><span class="co">#&gt; 1 0000010106 Prefectural Data Basic Data                                   System of Soci… Fisc…</span></span>
+<span><span class="co">#&gt; 2 0000010106 Prefectural Data Basic Data                                   System of Soci… Fisc…</span></span>
+<span><span class="co">#&gt; 3 0003217721 Labour Force Survey Detailed Tabulation Whole Japan Quarterly Population of … Quar…</span></span>
+<span><span class="co">#&gt; 4 0003217545 Labour Force Survey Detailed Tabulation Whole Japan Quarterly Labour underut… Quar…</span></span>
+<span><span class="co">#&gt; 5 0003006357 Labour Force Survey Detailed Tabulation Whole Japan Quarterly Population of … Quar…</span></span></code></pre></div>
+<p>Japanese keywords work too, and you can restrict to recently updated tables:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/search_estat.html">search_estat</a></span><span class="op">(</span><span class="st">"国勢調査"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/search_estat.html">search_estat</a></span><span class="op">(</span><span class="st">"国勢調査"</span>, updated_from <span class="op">=</span> <span class="st">"2020"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/search_estat.html">search_estat</a></span><span class="op">(</span><span class="st">"Population Census"</span>, limit <span class="op">=</span> <span class="fl">20</span><span class="op">)</span></span></code></pre></div>
+<p>The <code>id</code> column is the <code>statsDataId</code> you pass to <code><a href="reference/get_estat.html">get_estat()</a></code>.</p>
+<div class="section level3">
+<h3 id="browsing-the-file-catalog">Browsing the file catalog<a class="anchor" aria-label="anchor" href="#browsing-the-file-catalog"></a>
+</h3>
+<p><code><a href="reference/estat_data_catalog.html">estat_data_catalog()</a></code> searches e-Stat’s catalog of <em>downloadable files</em> (Excel/CSV/PDF) rather than machine-readable data. Use it for discovery; use <code><a href="reference/get_estat.html">get_estat()</a></code> for the actual numbers.</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/estat_data_catalog.html">estat_data_catalog</a></span><span class="op">(</span>searchWord <span class="op">=</span> <span class="st">"Population Census"</span>, limit <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"id"</span>, <span class="st">"DATASET_TITLE_NAME"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt; # A tibble: 3 × 2</span></span>
+<span><span class="co">#&gt;   id           DATASET_TITLE_NAME</span></span>
+<span><span class="co">#&gt;   &lt;chr&gt;        &lt;chr&gt;</span></span>
+<span><span class="co">#&gt; 1 000000030001 2000 Population Census_Sex, Age and Marital Status of Population, Structure and …</span></span>
+<span><span class="co">#&gt; 2 000000030097 2000 Population Census_Lobour Force Status of Population, Industry(Major Groups)…</span></span>
+<span><span class="co">#&gt; 3 000000030587 2000 Population Census_Final Report of The 2000 Population Census_Statistical ta…</span></span></code></pre></div>
+</div>
+</div>
+<div class="section level2">
+<h2 id="getting-data">Getting data<a class="anchor" aria-label="anchor" href="#getting-data"></a>
+</h2>
+<p><code><a href="reference/get_estat.html">get_estat()</a></code> is the main entry point. It fetches the data <em>and</em> its classification metadata in a single call, decodes every numeric code to a label, and returns a tidy tibble.</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/get_estat.html">get_estat</a></span><span class="op">(</span><span class="st">"0003217721"</span>, limit <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span>
+<span><span class="va">d</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"area"</span>, <span class="st">"time"</span>, <span class="st">"cat01"</span>, <span class="st">"unit"</span>, <span class="st">"value"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt; # A tibble: 5 × 5</span></span>
+<span><span class="co">#&gt;   area      time           cat01                                 unit                 value</span></span>
+<span><span class="co">#&gt;   &lt;chr&gt;     &lt;chr&gt;          &lt;chr&gt;                                 &lt;chr&gt;                &lt;dbl&gt;</span></span>
+<span><span class="co">#&gt; 1 All Japan Jan.-Mar. 2018 Population aged 15 years old and over ten thousand persons 11077</span></span>
+<span><span class="co">#&gt; 2 All Japan Apr.-Jun. 2018 Population aged 15 years old and over ten thousand persons 11079</span></span>
+<span><span class="co">#&gt; 3 All Japan Jul.-Sep. 2018 Population aged 15 years old and over ten thousand persons 11079</span></span>
+<span><span class="co">#&gt; 4 All Japan Oct.-Dec. 2018 Population aged 15 years old and over ten thousand persons 11080</span></span>
+<span><span class="co">#&gt; 5 All Japan Jan.-Mar. 2019 Population aged 15 years old and over ten thousand persons 11068</span></span></code></pre></div>
+<p>Omit <code>limit</code> to fetch every matching row; <code>estatr</code> paginates automatically.</p>
+</div>
+<div class="section level2">
+<h2 id="understanding-the-output">Understanding the output<a class="anchor" aria-label="anchor" href="#understanding-the-output"></a>
+</h2>
+<p>Every classification axis comes back as a <strong>pair</strong> of columns: the decoded label and the original code.</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="fu"><a href="reference/get_estat.html">get_estat</a></span><span class="op">(</span><span class="st">"0003217721"</span>, limit <span class="op">=</span> <span class="fl">5</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;  [1] "area"   "area_code"  "time"   "time_code"  "tab"    "tab_code"</span></span>
+<span><span class="co">#&gt;  [7] "cat01"  "cat01_code" "cat02"  "cat02_code" "cat03"  "cat03_code"</span></span>
+<span><span class="co">#&gt; [13] "cat04"  "cat04_code" "unit"   "value"      "annotation"</span></span></code></pre></div>
+<ul>
+<li>
+<code>area</code> / <code>area_code</code> — geography (<code>area_code</code> is what maps join on)</li>
+<li>
+<code>time</code> / <code>time_code</code> — period</li>
+<li>
+<code>tab</code>, <code>cat01</code>…<code>cat04</code> — the table’s category axes</li>
+<li>
+<code>unit</code> — unit of measurement</li>
+<li>
+<code>value</code> — <strong>numeric</strong>
+</li>
+<li>
+<code>annotation</code> — non-numeric markers preserved instead of silently becoming <code>NA</code>
+</li>
+</ul>
+<div class="section level3">
+<h3 id="annotations-not-silent-nas">Annotations, not silent NAs<a class="anchor" aria-label="anchor" href="#annotations-not-silent-nas"></a>
+</h3>
+<p>e-Stat uses markers like <code>-</code>, <code>***</code> and <code>*</code> for suppressed or inapplicable cells. <code>estatr</code> keeps them:</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">e</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/get_estat.html">get_estat</a></span><span class="op">(</span><span class="st">"0004005652"</span>, limit <span class="op">=</span> <span class="fl">8000</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">e</span><span class="op">[</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">e</span><span class="op">$</span><span class="va">annotation</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"area"</span>, <span class="st">"cat01"</span>, <span class="st">"value"</span>, <span class="st">"annotation"</span><span class="op">)</span><span class="op">]</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="co">#&gt; # A tibble: 3 × 4</span></span>
+<span><span class="co">#&gt;   area         cat01                               value annotation</span></span>
+<span><span class="co">#&gt;   &lt;chr&gt;        &lt;chr&gt;                               &lt;dbl&gt; &lt;chr&gt;</span></span>
+<span><span class="co">#&gt; 1 Saitama-shi  Agriculture, Forestry and Fisheries    NA -</span></span>
+<span><span class="co">#&gt; 2 Kawasaki-shi Agriculture, Forestry and Fisheries    NA -</span></span>
+<span><span class="co">#&gt; 3 Niigata-shi  Agriculture, Forestry and Fisheries    NA -</span></span></code></pre></div>
+<p>The legend for those markers travels with the data as a <code>notes</code> attribute:</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">e</span>, <span class="st">"notes"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; # A tibble: 3 × 2</span></span>
+<span><span class="co">#&gt;   char  note</span></span>
+<span><span class="co">#&gt;   &lt;chr&gt; &lt;chr&gt;</span></span>
+<span><span class="co">#&gt; 1 *     Shortened item name</span></span>
+<span><span class="co">#&gt; 2 ***   The one that figure is not obtained</span></span>
+<span><span class="co">#&gt; 3 -     Not applicable</span></span></code></pre></div>
+</div>
+</div>
+<div class="section level2">
+<h2 id="curated-shortcuts">Curated shortcuts<a class="anchor" aria-label="anchor" href="#curated-shortcuts"></a>
+</h2>
+<p>For the handful of tables most people want first, you don’t need an id at all.</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/estat_curated_tables.html">estat_curated_tables</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt; # A tibble: 5 × 4</span></span>
+<span><span class="co">#&gt;   key                  statsDataId label_en                                         label_ja</span></span>
+<span><span class="co">#&gt;   &lt;chr&gt;                &lt;chr&gt;       &lt;chr&gt;                                            &lt;chr&gt;</span></span>
+<span><span class="co">#&gt; 1 labour_force_survey  0003005798  Labour Force Survey: population by activity      労働力調査…</span></span>
+<span><span class="co">#&gt; 2 family_income_survey 0002070001  Family Income and Expenditure Survey             家計調査…</span></span>
+<span><span class="co">#&gt; 3 regional_statistics  0000010106  Social &amp; demographic statistics by prefecture    社会・人口…</span></span>
+<span><span class="co">#&gt; 4 population_census    0003433219  Population Census 2020: population by sex        令和2年国勢…</span></span>
+<span><span class="co">#&gt; 5 economic_census      0004005652  Economic Census 2021: establishments by industry 令和3年経済…</span></span></code></pre></div>
+<p>Each has a dedicated wrapper, and all of them forward <code>...</code> to <code><a href="reference/get_estat.html">get_estat()</a></code>:</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/get_labour_force_survey.html">get_labour_force_survey</a></span><span class="op">(</span>limit <span class="op">=</span> <span class="fl">500</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/get_population_census.html">get_population_census</a></span><span class="op">(</span>cdArea <span class="op">=</span> <span class="st">"13000"</span><span class="op">)</span>          <span class="co"># Tokyo</span></span>
+<span><span class="fu"><a href="reference/get_family_income_survey.html">get_family_income_survey</a></span><span class="op">(</span>limit <span class="op">=</span> <span class="fl">500</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/get_economic_census.html">get_economic_census</a></span><span class="op">(</span>limit <span class="op">=</span> <span class="fl">500</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># 4. Map it: get an sf object with official e-Stat boundaries joined on</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-spatial.github.io/sf/" class="external-link">sf</a></span><span class="op">)</span></span>
-<span><span class="va">pop</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/get_estat.html">get_estat</a></span><span class="op">(</span><span class="st">"0003433219"</span>, cdCat01 <span class="op">=</span> <span class="st">"0"</span>, geometry <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>                 geometry_level <span class="op">=</span> <span class="st">"prefecture"</span>, geometry_year <span class="op">=</span> <span class="fl">2020</span><span class="op">)</span></span></code></pre></div>
-<p><code><a href="reference/get_estat.html">get_estat()</a></code> returns one row per observation with paired label/code columns, a numeric <code>value</code>, and an <code>annotation</code> column preserving suppressed/footnoted markers. See <code><a href="articles/estatr.html">vignette("estatr")</a></code> to get started.</p>
+<span><span class="co"># Or by key</span></span>
+<span><span class="fu"><a href="reference/get_estat_curated.html">get_estat_curated</a></span><span class="op">(</span><span class="st">"population_census"</span>, limit <span class="op">=</span> <span class="fl">500</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="inspecting-a-tables-metadata">Inspecting a table’s metadata<a class="anchor" aria-label="anchor" href="#inspecting-a-tables-metadata"></a>
+</h2>
+<p>Before pulling a big table, look at what axes and codes it has. This is how you learn which <code>cd*</code> filter values are valid.</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/estat_meta_info.html">estat_meta_info</a></span><span class="op">(</span><span class="st">"0003433219"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">m</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "tab"   "cat01" "area"  "time"</span></span>
+<span></span>
+<span><span class="va">m</span><span class="op">$</span><span class="va">cat01</span></span>
+<span><span class="co">#&gt; # A tibble: 3 × 5</span></span>
+<span><span class="co">#&gt;   code  name   level unit  parent</span></span>
+<span><span class="co">#&gt;   &lt;chr&gt; &lt;chr&gt;  &lt;chr&gt; &lt;chr&gt; &lt;chr&gt;</span></span>
+<span><span class="co">#&gt; 1 0     Total  1     &lt;NA&gt;  &lt;NA&gt;</span></span>
+<span><span class="co">#&gt; 2 1     Male   1     &lt;NA&gt;  &lt;NA&gt;</span></span>
+<span><span class="co">#&gt; 3 2     Female 1     &lt;NA&gt;  &lt;NA&gt;</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">m</span><span class="op">$</span><span class="va">area</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="co">#&gt; # A tibble: 3 × 5</span></span>
+<span><span class="co">#&gt;   code  name        level parent unit</span></span>
+<span><span class="co">#&gt;   &lt;chr&gt; &lt;chr&gt;       &lt;chr&gt; &lt;chr&gt;  &lt;chr&gt;</span></span>
+<span><span class="co">#&gt; 1 00000 Japan       1     &lt;NA&gt;   &lt;NA&gt;</span></span>
+<span><span class="co">#&gt; 2 01000 Hokkaido    2     00000  &lt;NA&gt;</span></span>
+<span><span class="co">#&gt; 3 01100 Sapporo-shi 4     01000  &lt;NA&gt;</span></span></code></pre></div>
+<p>The <code>level</code> and <code>parent</code> columns describe the hierarchy — national → prefecture → city → ward.</p>
+</div>
+<div class="section level2">
+<h2 id="filtering">Filtering<a class="anchor" aria-label="anchor" href="#filtering"></a>
+</h2>
+<p>Any <code>cd*</code> parameter from the e-Stat API passes straight through <code>...</code>:</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># One category, from 2023 onward</span></span>
+<span><span class="fu"><a href="reference/get_estat.html">get_estat</a></span><span class="op">(</span><span class="st">"0003217721"</span>, cdCat01 <span class="op">=</span> <span class="st">"00"</span>, cdTimeFrom <span class="op">=</span> <span class="st">"2023000000"</span>, limit <span class="op">=</span> <span class="fl">6</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"area"</span>, <span class="st">"time"</span>, <span class="st">"cat01"</span>, <span class="st">"value"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt; # A tibble: 6 × 4</span></span>
+<span><span class="co">#&gt;   area      time           cat01                                 value</span></span>
+<span><span class="co">#&gt;   &lt;chr&gt;     &lt;chr&gt;          &lt;chr&gt;                                 &lt;dbl&gt;</span></span>
+<span><span class="co">#&gt; 1 All Japan Jan.-Mar. 2023 Population aged 15 years old and over 10993</span></span>
+<span><span class="co">#&gt; 2 All Japan Apr.-Jun. 2023 Population aged 15 years old and over 11002</span></span>
+<span><span class="co">#&gt; 3 All Japan Jul.-Sep. 2023 Population aged 15 years old and over 11002</span></span>
+<span><span class="co">#&gt; 4 All Japan Oct.-Dec. 2023 Population aged 15 years old and over 10989</span></span>
+<span><span class="co">#&gt; 5 All Japan Jan.-Mar. 2024 Population aged 15 years old and over 10976</span></span>
+<span><span class="co">#&gt; 6 All Japan Apr.-Jun. 2024 Population aged 15 years old and over 10978</span></span></code></pre></div>
+<p>Common filters:</p>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/get_estat.html">get_estat</a></span><span class="op">(</span><span class="st">"0003433219"</span>, cdArea <span class="op">=</span> <span class="st">"13000"</span><span class="op">)</span>                    <span class="co"># one area</span></span>
+<span><span class="fu"><a href="reference/get_estat.html">get_estat</a></span><span class="op">(</span><span class="st">"0003433219"</span>, cdArea <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"13000"</span>, <span class="st">"27000"</span><span class="op">)</span><span class="op">)</span>        <span class="co"># several areas</span></span>
+<span><span class="fu"><a href="reference/get_estat.html">get_estat</a></span><span class="op">(</span><span class="st">"0003433219"</span>, cdCat01 <span class="op">=</span> <span class="st">"1"</span><span class="op">)</span>                       <span class="co"># one category</span></span>
+<span><span class="fu"><a href="reference/get_estat.html">get_estat</a></span><span class="op">(</span><span class="st">"0003217721"</span>, cdTime <span class="op">=</span> <span class="st">"2023000103"</span><span class="op">)</span>               <span class="co"># one period</span></span>
+<span><span class="fu"><a href="reference/get_estat.html">get_estat</a></span><span class="op">(</span><span class="st">"0003217721"</span>, cdTimeFrom <span class="op">=</span> <span class="st">"2020000000"</span>,</span>
+<span>                        cdTimeTo   <span class="op">=</span> <span class="st">"2023000000"</span><span class="op">)</span>           <span class="co"># a period range</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="reshaping-to-wide-form">Reshaping to wide form<a class="anchor" aria-label="anchor" href="#reshaping-to-wide-form"></a>
+</h2>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">p</span>  <span class="op">&lt;-</span> <span class="fu"><a href="reference/get_estat.html">get_estat</a></span><span class="op">(</span><span class="st">"0003433219"</span><span class="op">)</span></span>
+<span><span class="va">pp</span> <span class="op">&lt;-</span> <span class="va">p</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"000$"</span>, <span class="va">p</span><span class="op">$</span><span class="va">area_code</span><span class="op">)</span> <span class="op">&amp;</span> <span class="va">p</span><span class="op">$</span><span class="va">area_code</span> <span class="op">!=</span> <span class="st">"00000"</span>, <span class="op">]</span>   <span class="co"># prefectures only</span></span>
+<span></span>
+<span><span class="va">w</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/pivot_estat_wide.html">pivot_estat_wide</a></span><span class="op">(</span><span class="va">pp</span>, names_from <span class="op">=</span> <span class="st">"cat01"</span>, values_from <span class="op">=</span> <span class="st">"value"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">w</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"area"</span>, <span class="st">"area_code"</span>, <span class="st">"Total"</span>, <span class="st">"Male"</span>, <span class="st">"Female"</span><span class="op">)</span><span class="op">]</span>, <span class="fl">5</span><span class="op">)</span></span>
+<span><span class="co">#&gt; # A tibble: 5 × 5</span></span>
+<span><span class="co">#&gt;   area       area_code   Total    Male  Female</span></span>
+<span><span class="co">#&gt;   &lt;chr&gt;      &lt;chr&gt;       &lt;dbl&gt;   &lt;dbl&gt;   &lt;dbl&gt;</span></span>
+<span><span class="co">#&gt; 1 Aichi-ken  23000     7546192 3762249 3783943</span></span>
+<span><span class="co">#&gt; 2 Akita-ken  05000      960113  452479  507634</span></span>
+<span><span class="co">#&gt; 3 Aomori-ken 02000     1238730  583541  655189</span></span>
+<span><span class="co">#&gt; 4 Chiba-ken  12000     6287034 3117871 3169163</span></span>
+<span><span class="co">#&gt; 5 Ehime-ken  38000     1335694  633220  702474</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="language-english-and-japanese">Language: English and Japanese<a class="anchor" aria-label="anchor" href="#language-english-and-japanese"></a>
+</h2>
+<p><code>estatr</code> works in <strong>English by default</strong> — e-Stat provides the translations.</p>
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/get_estat.html">get_estat</a></span><span class="op">(</span><span class="st">"0003217721"</span>, limit <span class="op">=</span> <span class="fl">2</span>, lang <span class="op">=</span> <span class="st">"J"</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"area"</span>, <span class="st">"time"</span>, <span class="st">"cat01"</span>, <span class="st">"unit"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt; # A tibble: 2 × 4</span></span>
+<span><span class="co">#&gt;   area  time           cat01        unit</span></span>
+<span><span class="co">#&gt;   &lt;chr&gt; &lt;chr&gt;          &lt;chr&gt;        &lt;chr&gt;</span></span>
+<span><span class="co">#&gt; 1 全国  2018年1～3月期 15歳以上人口 万人</span></span>
+<span><span class="co">#&gt; 2 全国  2018年4～6月期 15歳以上人口 万人</span></span></code></pre></div>
+<p>Set it globally for a session:</p>
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span>estatr.lang <span class="op">=</span> <span class="st">"J"</span><span class="op">)</span></span></code></pre></div>
+<p>Tables with no English release fall back to Japanese automatically and warn, so English mode never returns blanks:</p>
+<pre><code><span><span class="co">#&gt; Warning: This table has no English release from e-Stat; returning Japanese labels.</span></span>
+<span><span class="co">#&gt; ℹ Pass `lang = "J"` to request Japanese directly and silence this warning.</span></span></code></pre>
+</div>
+<div class="section level2">
+<h2 id="maps-and-boundary-geometry">Maps and boundary geometry<a class="anchor" aria-label="anchor" href="#maps-and-boundary-geometry"></a>
+</h2>
+<p><code>estatr</code> downloads official e-Stat census boundary polygons and joins them on <code>area_code</code>, giving you a choropleth-ready <code>sf</code> object. Requires <code>sf</code>.</p>
+<p>The shortcut is <code>geometry = TRUE</code> on <code><a href="reference/get_estat.html">get_estat()</a></code>:</p>
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-spatial.github.io/sf/" class="external-link">sf</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">pop</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/get_estat.html">get_estat</a></span><span class="op">(</span><span class="st">"0003433219"</span>, cdCat01 <span class="op">=</span> <span class="st">"0"</span>, lvArea <span class="op">=</span> <span class="st">"2"</span>, geometry <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>                 geometry_level <span class="op">=</span> <span class="st">"prefecture"</span>, geometry_year <span class="op">=</span> <span class="fl">2020</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">pop</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 47</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">pop</span><span class="op">[</span><span class="st">"value"</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
+<p>Or join geometry onto data you already have:</p>
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">d</span>   <span class="op">&lt;-</span> <span class="fu"><a href="reference/get_population_census.html">get_population_census</a></span><span class="op">(</span>cdCat01 <span class="op">=</span> <span class="st">"0"</span>, lvArea <span class="op">=</span> <span class="st">"2"</span><span class="op">)</span></span>
+<span><span class="va">map</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/estat_join_geometry.html">estat_join_geometry</a></span><span class="op">(</span><span class="va">d</span>, level <span class="op">=</span> <span class="st">"prefecture"</span>, year <span class="op">=</span> <span class="fl">2020</span><span class="op">)</span></span></code></pre></div>
+<div class="section level3">
+<h3 id="ask-for-one-geographic-level">Ask for one geographic level<a class="anchor" aria-label="anchor" href="#ask-for-one-geographic-level"></a>
+</h3>
+<p>That <code>lvArea = "2"</code> matters. Most e-Stat tables stack every geography in one table — national total, prefectures, municipalities, wards. <code>0003433219</code> holds <strong>1,965 areas</strong>. Fetch all of them and join at <code>level = "prefecture"</code> and only 47 get a polygon; the rest come back with empty geometry and a warning.</p>
+<p>e-Stat’s <code>lv&lt;axis&gt;</code> parameters filter by level server-side, and pass straight through <code>...</code>:</p>
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="fu"><a href="reference/get_estat.html">get_estat</a></span><span class="op">(</span><span class="st">"0003433219"</span>, cdCat01 <span class="op">=</span> <span class="st">"0"</span><span class="op">)</span><span class="op">)</span>              <span class="co"># every level</span></span>
+<span><span class="co">#&gt; [1] 1965</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="fu"><a href="reference/get_estat.html">get_estat</a></span><span class="op">(</span><span class="st">"0003433219"</span>, cdCat01 <span class="op">=</span> <span class="st">"0"</span>, lvArea <span class="op">=</span> <span class="st">"2"</span><span class="op">)</span><span class="op">)</span>  <span class="co"># prefectures only</span></span>
+<span><span class="co">#&gt; [1] 47</span></span></code></pre></div>
+<p>For this table the levels are <code>1</code> national, <code>2</code> prefecture, <code>4</code> city, <code>5</code> ward, <code>6</code> town/village. They vary by table, so check the <code>level</code> and <code>parent</code> columns of <code>estat_meta_info(id)$area</code> rather than assuming. The same works for other axes (<code>lvCat01</code>, <code>lvTime</code>, …).</p>
+<p>With <code>ggplot2</code>:</p>
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">map</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggsf.html" class="external-link">geom_sf</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>fill <span class="op">=</span> <span class="va">value</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html" class="external-link">scale_fill_viridis_c</a></span><span class="op">(</span>trans <span class="op">=</span> <span class="st">"log10"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_void</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="downloading-boundaries-on-their-own">Downloading boundaries on their own<a class="anchor" aria-label="anchor" href="#downloading-boundaries-on-their-own"></a>
+</h3>
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">b</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/estat_boundaries.html">estat_boundaries</a></span><span class="op">(</span><span class="st">"31"</span>, level <span class="op">=</span> <span class="st">"municipality"</span>, year <span class="op">=</span> <span class="fl">2020</span><span class="op">)</span>   <span class="co"># Tottori</span></span>
+<span><span class="va">b</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">4</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"area_code"</span>, <span class="st">"CITY_NAME"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt; Simple feature collection with 4 features and 2 fields</span></span>
+<span><span class="co">#&gt; Geometry type: GEOMETRY</span></span>
+<span><span class="co">#&gt; Bounding box:  xmin: 133.1984 ymin: 35.27164 xmax: 134.4408 ymax: 35.57287</span></span>
+<span><span class="co">#&gt; Geodetic CRS:  JGD2000</span></span>
+<span><span class="co">#&gt;   area_code CITY_NAME                       geometry</span></span>
+<span><span class="co">#&gt; 1     31201    鳥取市 MULTIPOLYGON (((134.0244 35...</span></span>
+<span><span class="co">#&gt; 2     31202    米子市 POLYGON ((133.343 35.38851,...</span></span>
+<span><span class="co">#&gt; 3     31203    倉吉市 POLYGON ((133.7687 35.31787...</span></span>
+<span><span class="co">#&gt; 4     31204    境港市 POLYGON ((133.2347 35.48433...</span></span></code></pre></div>
+<p>Three levels are available, all derived from the same authoritative small-area shapefiles so the codes always match your data:</p>
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/estat_boundaries.html">estat_boundaries</a></span><span class="op">(</span><span class="st">"31"</span>, level <span class="op">=</span> <span class="st">"prefecture"</span><span class="op">)</span>    <span class="co"># whole prefectures, PREF + "000"</span></span>
+<span><span class="fu"><a href="reference/estat_boundaries.html">estat_boundaries</a></span><span class="op">(</span><span class="st">"31"</span>, level <span class="op">=</span> <span class="st">"municipality"</span><span class="op">)</span>  <span class="co"># 5-digit PREF + CITY (default)</span></span>
+<span><span class="fu"><a href="reference/estat_boundaries.html">estat_boundaries</a></span><span class="op">(</span><span class="st">"31"</span>, level <span class="op">=</span> <span class="st">"small_area"</span><span class="op">)</span>    <span class="co"># raw 町丁・字, 9-digit KEY_CODE</span></span></code></pre></div>
+<p>Notes worth knowing:</p>
+<ul>
+<li>
+<strong>Match <code>year</code> to your data’s census year.</strong> Municipality codes change between censuses (mergers), so a mismatched year mis-joins. <code><a href="reference/estat_join_geometry.html">estat_join_geometry()</a></code> warns about codes it could not match.</li>
+<li>
+<strong>Boundary name columns are Japanese only</strong> (<code>PREF_NAME</code>, <code>CITY_NAME</code>) — the shapefiles ship no English. Your <code><a href="reference/get_estat.html">get_estat()</a></code> labels are still English.</li>
+<li>
+<strong>The national total (<code>00000</code>) has no polygon.</strong> It is kept with an empty geometry rather than dropped, so row counts line up with the input.</li>
+<li>
+<strong>Designated cities:</strong> e-Stat’s shapefiles carry only ward codes. The default <code>designated_cities = "both"</code> returns ward polygons <em>and</em> a unioned parent-city polygon, so data coded at either level joins. Use <code>"ward"</code> or <code>"city"</code> to pick one.</li>
+<li>Downloads are cached, and all 47 prefectures is roughly 250 MB — pass <code>areas</code> to fetch only what you need.</li>
+</ul>
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/estat_boundaries.html">estat_boundaries</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"13"</span>, <span class="st">"14"</span><span class="op">)</span>, level <span class="op">=</span> <span class="st">"municipality"</span><span class="op">)</span>   <span class="co"># Tokyo + Kanagawa</span></span>
+<span><span class="fu"><a href="reference/estat_boundaries.html">estat_boundaries</a></span><span class="op">(</span><span class="st">"13"</span>, designated_cities <span class="op">=</span> <span class="st">"ward"</span><span class="op">)</span>        <span class="co"># special wards only</span></span>
+<span><span class="fu"><a href="reference/estat_boundaries.html">estat_boundaries</a></span><span class="op">(</span><span class="st">"13"</span>, year <span class="op">=</span> <span class="fl">2015</span>, datum <span class="op">=</span> <span class="st">"2011"</span><span class="op">)</span>       <span class="co"># JGD2011 (2015/2020 only)</span></span></code></pre></div>
+</div>
+</div>
+<div class="section level2">
+<h2 id="large-pulls-pagination-and-resuming">Large pulls, pagination and resuming<a class="anchor" aria-label="anchor" href="#large-pulls-pagination-and-resuming"></a>
+</h2>
+<p>e-Stat caps a single response at 100,000 records. <code><a href="reference/get_estat.html">get_estat()</a></code> paginates automatically, fetching pages in parallel with bounded concurrency and a polite client-side throttle.</p>
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/get_estat.html">get_estat</a></span><span class="op">(</span><span class="st">"0003217721"</span><span class="op">)</span>   <span class="co"># 42,751 rows, fetched in a few seconds</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">d</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 42751</span></span></code></pre></div>
+<p>For very large pulls, <code>checkpoint</code> makes the job resumable — rerun the same call after an interruption and it picks up where it left off:</p>
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/get_estat.html">get_estat</a></span><span class="op">(</span><span class="st">"0003433219"</span>, checkpoint <span class="op">=</span> <span class="st">"census2020.rds"</span><span class="op">)</span></span></code></pre></div>
+<p>Tune the network behaviour with options:</p>
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span>estatr.throttle   <span class="op">=</span> <span class="fl">0.34</span><span class="op">)</span>  <span class="co"># min seconds between requests (default)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span>estatr.max_active <span class="op">=</span> <span class="fl">5</span><span class="op">)</span>     <span class="co"># max concurrent requests</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span>estatr.timeout    <span class="op">=</span> <span class="fl">60</span><span class="op">)</span>    <span class="co"># per-request timeout, seconds</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="performance-fast-paths">Performance fast paths<a class="anchor" aria-label="anchor" href="#performance-fast-paths"></a>
+</h2>
+<p>Internals use <code>data.table</code>; the tibble conversion happens only at the return boundary. Two escape hatches for bulk work:</p>
+<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Skip the metadata join entirely — coded columns only</span></span>
+<span><span class="fu"><a href="reference/get_estat.html">get_estat</a></span><span class="op">(</span><span class="st">"0003217721"</span>, limit <span class="op">=</span> <span class="fl">3</span>, decode_labels <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="co">#&gt; # A tibble: 3 × 10</span></span>
+<span><span class="co">#&gt;   tab   cat01 cat02 cat03 cat04 area  time       unit                 value annotation</span></span>
+<span><span class="co">#&gt;   &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt;      &lt;chr&gt;                &lt;dbl&gt; &lt;chr&gt;</span></span>
+<span><span class="co">#&gt; 1 06    00    00    0     00    00000 2018000103 ten thousand persons 11077 &lt;NA&gt;</span></span>
+<span><span class="co">#&gt; 2 06    00    00    0     00    00000 2018000406 ten thousand persons 11079 &lt;NA&gt;</span></span>
+<span><span class="co">#&gt; 3 06    00    00    0     00    00000 2018000709 ten thousand persons 11079 &lt;NA&gt;</span></span>
+<span></span>
+<span><span class="co"># Return the data.table directly, skipping even the tibble conversion</span></span>
+<span><span class="va">dt</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/get_estat.html">get_estat</a></span><span class="op">(</span><span class="st">"0003217721"</span>, as_data_table <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="caching">Caching<a class="anchor" aria-label="anchor" href="#caching"></a>
+</h2>
+<p>Classification metadata is cached on disk (with an in-session memoise layer on top), and boundary downloads are cached too.</p>
+<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/estat_cache_dir.html">estat_cache_dir</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "~/Library/Caches/estatr"</span></span>
+<span></span>
+<span><span class="fu"><a href="reference/estat_cache_clear.html">estat_cache_clear</a></span><span class="op">(</span><span class="op">)</span>                    <span class="co"># everything</span></span>
+<span><span class="fu"><a href="reference/estat_cache_clear.html">estat_cache_clear</a></span><span class="op">(</span><span class="st">"meta"</span><span class="op">)</span>              <span class="co"># metadata only</span></span>
+<span><span class="fu"><a href="reference/estat_cache_clear.html">estat_cache_clear</a></span><span class="op">(</span><span class="st">"checkpoints"</span><span class="op">)</span>       <span class="co"># resumable-pull checkpoints only</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span>estatr.cache_dir <span class="op">=</span> <span class="st">"~/my-cache"</span><span class="op">)</span>   <span class="co"># relocate the cache</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="low-level-api-wrappers">Low-level API wrappers<a class="anchor" aria-label="anchor" href="#low-level-api-wrappers"></a>
+</h2>
+<p>If you want the API surface as-is, each endpoint has a thin wrapper. These mirror e-Stat’s own parameter and column names.</p>
+<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># getStatsList — raw catalog search</span></span>
+<span><span class="fu"><a href="reference/estat_stats_list.html">estat_stats_list</a></span><span class="op">(</span>searchWord <span class="op">=</span> <span class="st">"Economic Census"</span>, limit <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"id"</span>, <span class="st">"STATISTICS_NAME"</span>, <span class="st">"CYCLE"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt; # A tibble: 3 × 3</span></span>
+<span><span class="co">#&gt;   id         STATISTICS_NAME                                            CYCLE</span></span>
+<span><span class="co">#&gt;   &lt;chr&gt;      &lt;chr&gt;                                                      &lt;chr&gt;</span></span>
+<span><span class="co">#&gt; 1 0000010103 Prefectural Data Basic Data                                Fiscal yearly</span></span>
+<span><span class="co">#&gt; 2 0000010103 Prefectural Data Basic Data                                Fiscal yearly</span></span>
+<span><span class="co">#&gt; 3 0000020103 Municipality data Basic data including past municipalities Fiscal yearly</span></span>
+<span></span>
+<span><span class="co"># getStatsData — undecoded values</span></span>
+<span><span class="fu"><a href="reference/estat_stats_data.html">estat_stats_data</a></span><span class="op">(</span><span class="st">"0003217721"</span>, limit <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="co">#&gt; # A tibble: 3 × 9</span></span>
+<span><span class="co">#&gt;   tab   cat01 cat02 cat03 cat04 area  time       unit                 value</span></span>
+<span><span class="co">#&gt;   &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;chr&gt;      &lt;chr&gt;                &lt;chr&gt;</span></span>
+<span><span class="co">#&gt; 1 06    00    00    0     00    00000 2018000103 ten thousand persons 11077</span></span>
+<span><span class="co">#&gt; 2 06    00    00    0     00    00000 2018000406 ten thousand persons 11079</span></span>
+<span><span class="co">#&gt; 3 06    00    00    0     00    00000 2018000709 ten thousand persons 11079</span></span>
+<span></span>
+<span><span class="co"># getMetaInfo — classification metadata</span></span>
+<span><span class="fu"><a href="reference/estat_meta_info.html">estat_meta_info</a></span><span class="op">(</span><span class="st">"0003217721"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># getDataCatalog — downloadable file catalog</span></span>
+<span><span class="fu"><a href="reference/estat_data_catalog.html">estat_data_catalog</a></span><span class="op">(</span>searchWord <span class="op">=</span> <span class="st">"国勢調査"</span>, limit <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span></code></pre></div>
+<p>Note that <code><a href="reference/estat_stats_data.html">estat_stats_data()</a></code> returns <code>value</code> as <strong>character</strong> (undecoded); <code><a href="reference/get_estat.html">get_estat()</a></code> is what splits it into a numeric <code>value</code> plus <code>annotation</code>.</p>
+</div>
+<div class="section level2">
+<h2 id="function-reference">Function reference<a class="anchor" aria-label="anchor" href="#function-reference"></a>
+</h2>
+<table class="table">
+<colgroup>
+<col width="50%">
+<col width="50%">
+</colgroup>
+<thead><tr>
+<th>Function</th>
+<th>Purpose</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><code><a href="reference/get_estat.html">get_estat()</a></code></td>
+<td>Main entry point: tidy, labelled data</td>
+</tr>
+<tr>
+<td><code><a href="reference/search_estat.html">search_estat()</a></code></td>
+<td>Interactive catalog search</td>
+</tr>
+<tr>
+<td><code><a href="reference/estat_meta_info.html">estat_meta_info()</a></code></td>
+<td>A table’s classification axes and codes</td>
+</tr>
+<tr>
+<td><code><a href="reference/pivot_estat_wide.html">pivot_estat_wide()</a></code></td>
+<td>Reshape tidy output to wide form</td>
+</tr>
+<tr>
+<td><code><a href="reference/estat_curated_tables.html">estat_curated_tables()</a></code></td>
+<td>List the curated shortcut tables</td>
+</tr>
+<tr>
+<td><code><a href="reference/get_estat_curated.html">get_estat_curated()</a></code></td>
+<td>Fetch a curated table by key</td>
+</tr>
+<tr>
+<td><code><a href="reference/get_labour_force_survey.html">get_labour_force_survey()</a></code></td>
+<td>Curated: Labour Force Survey</td>
+</tr>
+<tr>
+<td><code><a href="reference/get_population_census.html">get_population_census()</a></code></td>
+<td>Curated: Population Census 2020</td>
+</tr>
+<tr>
+<td><code><a href="reference/get_family_income_survey.html">get_family_income_survey()</a></code></td>
+<td>Curated: Family Income and Expenditure Survey</td>
+</tr>
+<tr>
+<td><code><a href="reference/get_economic_census.html">get_economic_census()</a></code></td>
+<td>Curated: Economic Census 2021</td>
+</tr>
+<tr>
+<td><code><a href="reference/estat_boundaries.html">estat_boundaries()</a></code></td>
+<td>Download boundary polygons as <code>sf</code>
+</td>
+</tr>
+<tr>
+<td><code><a href="reference/estat_join_geometry.html">estat_join_geometry()</a></code></td>
+<td>Join polygons onto e-Stat data</td>
+</tr>
+<tr>
+<td><code><a href="reference/estat_api_key.html">estat_api_key()</a></code></td>
+<td>Register your appId</td>
+</tr>
+<tr>
+<td><code><a href="reference/estat_api_key_exists.html">estat_api_key_exists()</a></code></td>
+<td>Check for a registered key</td>
+</tr>
+<tr>
+<td><code><a href="reference/estat_cache_dir.html">estat_cache_dir()</a></code></td>
+<td>Where the cache lives</td>
+</tr>
+<tr>
+<td><code><a href="reference/estat_cache_clear.html">estat_cache_clear()</a></code></td>
+<td>Clear cached metadata/checkpoints</td>
+</tr>
+<tr>
+<td><code><a href="reference/estat_stats_list.html">estat_stats_list()</a></code></td>
+<td>Low-level <code>getStatsList</code>
+</td>
+</tr>
+<tr>
+<td><code><a href="reference/estat_stats_data.html">estat_stats_data()</a></code></td>
+<td>Low-level <code>getStatsData</code>
+</td>
+</tr>
+<tr>
+<td><code><a href="reference/estat_data_catalog.html">estat_data_catalog()</a></code></td>
+<td>Low-level <code>getDataCatalog</code>
+</td>
+</tr>
+</tbody>
+</table>
+<p>See <code><a href="articles/estatr.html">vignette("estatr")</a></code> for a longer walkthrough.</p>
 </div>
 <div class="section level2">
 <h2 id="data-source-and-credit">Data source and credit<a class="anchor" aria-label="anchor" href="#data-source-and-credit"></a>
@@ -177,7 +663,7 @@
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>

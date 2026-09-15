@@ -86,6 +86,7 @@ construction. This needs the <a href="https://r-spatial.github.io/sf/" class="ex
 <span><span class="va">pop</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_estat.html">get_estat</a></span><span class="op">(</span></span>
 <span>  <span class="st">"0003433219"</span>,             <span class="co"># 2020 Population Census, population by sex</span></span>
 <span>  cdCat01 <span class="op">=</span> <span class="st">"0"</span>,            <span class="co"># total (both sexes)</span></span>
+<span>  lvArea <span class="op">=</span> <span class="st">"2"</span>,             <span class="co"># prefecture level only (see below)</span></span>
 <span>  geometry <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  geometry_level <span class="op">=</span> <span class="st">"prefecture"</span>,</span>
 <span>  geometry_year <span class="op">=</span> <span class="fl">2020</span></span>
@@ -102,7 +103,7 @@ construction. This needs the <a href="https://r-spatial.github.io/sf/" class="ex
 <p>If you already pulled data, join geometry separately with
 [estat_join_geometry()]:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_estat.html">get_estat</a></span><span class="op">(</span><span class="st">"0003433219"</span>, cdCat01 <span class="op">=</span> <span class="st">"0"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_estat.html">get_estat</a></span><span class="op">(</span><span class="st">"0003433219"</span>, cdCat01 <span class="op">=</span> <span class="st">"0"</span>, lvArea <span class="op">=</span> <span class="st">"2"</span><span class="op">)</span></span>
 <span><span class="va">sf_d</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/estat_join_geometry.html">estat_join_geometry</a></span><span class="op">(</span><span class="va">d</span>, level <span class="op">=</span> <span class="st">"prefecture"</span>, year <span class="op">=</span> <span class="fl">2020</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
@@ -129,6 +130,36 @@ ends in <code>000</code>, else municipality.</li>
 fetches that prefecture’s file.</p>
 </div>
 <div class="section level2">
+<h2 id="ask-for-one-geographic-level">Ask for one geographic level<a class="anchor" aria-label="anchor" href="#ask-for-one-geographic-level"></a>
+</h2>
+<p>Most e-Stat tables stack every geography in the same table: the
+national total, then prefectures, then municipalities, then wards.
+<code>0003433219</code> holds 1,965 areas. If you fetch all of them and
+join at <code>level = "prefecture"</code>, only the 47 prefectures get a
+polygon and everything else comes back with empty geometry — plus a
+warning telling you so.</p>
+<p>Filter to the level you want with e-Stat’s
+<code>lv&lt;axis&gt;</code> parameters, which pass straight through
+<code>...</code>:</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_estat.html">get_estat</a></span><span class="op">(</span><span class="st">"0003433219"</span>, cdCat01 <span class="op">=</span> <span class="st">"0"</span>, lvArea <span class="op">=</span> <span class="st">"2"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">d</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 47</span></span></code></pre></div>
+<p><code>lvArea = "2"</code> is prefecture level. For this table the
+levels are <code>1</code> national, <code>2</code> prefecture,
+<code>4</code> city, <code>5</code> ward, <code>6</code> town/village —
+but they vary by table, so check the metadata rather than assuming:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/estat_meta_info.html">estat_meta_info</a></span><span class="op">(</span><span class="st">"0003433219"</span><span class="op">)</span><span class="op">$</span><span class="va">area</span>   <span class="co"># `level` and `parent` columns</span></span></code></pre></div>
+<p>The same works for other axes (<code>lvCat01</code>,
+<code>lvTime</code>, …). Doing this server-side keeps the download small
+and the join exact.</p>
+<p>Note that <code>lvArea = "2"</code> excludes the national total
+(<code>00000</code>), which has no boundary polygon. If your data does
+include it, the row is kept with an empty geometry rather than dropped,
+so row counts still line up.</p>
+</div>
+<div class="section level2">
 <h2 id="matching-the-boundary-year-to-your-data">Matching the boundary year to your data<a class="anchor" aria-label="anchor" href="#matching-the-boundary-year-to-your-data"></a>
 </h2>
 <p><strong>This matters for accuracy.</strong> Japanese municipality
@@ -144,7 +175,7 @@ municipalities that changed in between.</p>
 the default) or JGD2011 (<code>datum = "2011"</code>, EPSG:6668).
 Reproject as needed for your basemap, e.g. to a projected CRS for
 area-correct rendering:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">pop_proj</span> <span class="op">&lt;-</span> <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_transform.html" class="external-link">st_transform</a></span><span class="op">(</span><span class="va">pop</span>, <span class="fl">6684</span><span class="op">)</span> <span class="co"># JGD2011 / Japan Plane Rectangular CS</span></span></code></pre></div>
 </div>
 <div class="section level2">
@@ -158,7 +189,7 @@ cities at both levels. By default
 (<code>designated_cities = "both"</code>), <code>estatr</code> returns
 both the ward polygons <em>and</em> a unioned parent-city polygon, so
 data coded either way joins with no holes:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Sapporo appears as its 10 wards AND as 01100 札幌市 (union of the wards)</span></span>
 <span><span class="va">bnd</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/estat_boundaries.html">estat_boundaries</a></span><span class="op">(</span><span class="st">"01"</span>, level <span class="op">=</span> <span class="st">"municipality"</span>, year <span class="op">=</span> <span class="fl">2020</span><span class="op">)</span></span></code></pre></div>
 <p>Use <code>designated_cities = "ward"</code> for wards only, or
@@ -189,7 +220,7 @@ must carry the e-Stat credit line; see the <a href="https://www.e-stat.go.jp/api
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>
